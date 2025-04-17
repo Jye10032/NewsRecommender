@@ -1,7 +1,9 @@
 import logo from './logo.svg';
 import './App.css';
-import HomePage from './components/HomePage.tsx';
 
+import { BrowserRouter, Routes, Route } from "react-router";
+import HomePage from './components/HomePage.tsx';
+import Login from './views/login/Login';
 function App() {
   return (
     <div className="App">
@@ -19,7 +21,12 @@ function App() {
           Learn React
         </a>
       </header> */}
-      <HomePage />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }
