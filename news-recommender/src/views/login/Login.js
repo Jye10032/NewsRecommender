@@ -1,17 +1,41 @@
 import React from 'react';
 import { Form, Input, Button, Checkbox, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom'; // 用于页面跳转
+import axios from 'axios';
+//import { useAuth } from '../../contexts/AuthContext.tsx';
 import './Login.css'; // 可选：用于自定义样式
 
 export default function Login() {
-    const onFinish = (values) => {
-        console.log('Received values of form: ', values);
-        // 模拟登录逻辑
-        if (values.username === 'admin' && values.password === '123456') {
-            message.success('登录成功！');
-        } else {
-            message.error('用户名或密码错误！');
+    //const { login } = useAuth();
+    const navigate = useNavigate();
+
+    const onFinish = async (values) => {
+        try {
+            // 发送登录请求到后端
+            const response = await axios.post('/api/login', {
+                username: values.username,
+                password: values.password,
+            });
+
+            if (response.data.success) {
+                // // 登录成功后保存用户信息
+                // login({
+                //     userId: response.data.user.userId,
+                //     username: response.data.user.username,
+                //     preferences: response.data.user.preferences
+                // });
+                message.success('登录成功！');
+                // 跳转到主页或其他页面
+                navigate('/');
+            } else {
+                message.error(response.data.message || '用户名或密码错误！');
+            }
+        } catch (error) {
+            console.error('登录失败：', error);
+            message.error('登录失败，请稍后再试！');
         }
+        console.log(message);
     };
 
     return (
@@ -53,7 +77,7 @@ export default function Login() {
                     <Button type="primary" htmlType="submit" className="login-form-button" block>
                         登录
                     </Button>
-                    或 <a href="/register">立即注册！</a>
+                    或 <a onClick={() => navigate('/register')}>立即注册！</a>
                 </Form.Item>
             </Form>
         </div>

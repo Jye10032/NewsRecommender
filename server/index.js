@@ -1,25 +1,36 @@
 import fs from 'fs/promises';
 import pkg from 'pg';
+import dotenv from 'dotenv';
+import { pool, testConnection } from './connect.js'; // 导入测试连接函数
+import express from 'express';
+import { corsMiddleware } from './cors.js';
+import newsdb from './db.js'; // 引入新闻路由
+import loginRoutes from './loginRoutes.js'; // 引入登录路由
+
+
+
+const { Pool } = pkg;
 
 const { Client } = pkg;
 
-import { pool, testConnection } from './db.js'; // 导入测试连接函数
 
-import express from 'express';
-import { corsMiddleware } from './cors.js';
 
 const app = express();
 const PORT = 3001; // 设置后端服务的端口
 
+// 使用 dotenv 加载环境变量
+dotenv.config();
+
+
+
 
 async function initializeDatabase() {
-    // 连接到默认数据库（postgres）
     const client = new Client({
-        user: 'postgres',
-        host: 'localhost',
-        password: '123456',
-        port: 5432,
-        database: 'postgres', // 默认数据库
+        user: process.env.DB_USER || 'default_user', // 如果环境变量不存在，使用默认值
+        host: process.env.DB_HOST || 'localhost',
+        password: process.env.DB_PASSWORD || 'default_password',
+        port: parseInt(process.env.DB_PORT, 10) || 5432,
+        database: process.env.DB_NAME || 'postgres', // 默认数据库
     });
 
     try {
@@ -40,14 +51,7 @@ async function initializeDatabase() {
 
         await client.end();
 
-        // 连接到目标数据库并执行 init.sql
-        const targetClient = new Client({
-            user: 'postgres',
-            host: 'localhost',
-            password: '123456',
-            port: 5432,
-            database: 'NewsRecommender', // 切换到目标数据库
-        });
+
         // await targetClient.connect();
         // const sql = await fs.readFile('./init.sql', 'utf-8');
         // await targetClient.query(sql);
@@ -57,23 +61,38 @@ async function initializeDatabase() {
         console.error('Error initializing database:', err);
     }
 
+    const targetClient = new Client({
+        user: process.env.DB_USER || 'default_user',
+        host: process.env.DB_HOST || 'localhost',
+        password: process.env.DB_PASSWORD || 'default_password',
+        port: parseInt(process.env.DB_PORT, 10) || 5432,
+        database: process.env.DB_NAME || 'NewsRecommender', // 目标数据库
+    });
+
+    try {
+        await targetClient.connect();
+
+        //初始化表结构
+        const sql = await fs.readFile('./init.sql', 'utf-8');
+        await targetClient.query(sql);
+        console.log('Tables initialized successfully');
+
+
+        console.log('Connected to target database successfully');
+
+    } catch (err) {
+        console.error('Error connecting to target database:', err);
+    } finally {
+        await targetClient.end();
+    }
+
     await testConnection(); // 调用测试连接函数
 }
 
 initializeDatabase();
 
 app.use(corsMiddleware); // 使用 CORS 中间件
-
-// // 测试数据库连接的 API
-// app.get('/api/test-db', async (req, res) => {
-//     try {
-//         const resDb = await pool.query('SELECT NOW()');
-//         res.json({ message: 'Database connected successfully', time: resDb.rows[0] });
-//     } catch (err) {
-//         console.error('Database connection error:', err);
-//         res.status(500).json({ error: 'Failed to connect to the database' });
-//     }
-// });
+app.use(express.json()); // 解析 JSON 请求体
 
 
 // 新闻列表接口
@@ -87,31 +106,10 @@ app.use(corsMiddleware); // 使用 CORS 中间件
 // 6. 考虑使用更好的错误处理机制，返回更友好的错误信息
 
 
-app.get('/api/news', async (req, res) => {
-    try {
-        const { page = 1, limit = 10 } = req.query;
-        const offset = (page - 1) * limit;
+// 使用新闻路由
+app.use('/', newsdb);
+app.use('/', loginRoutes);
 
-        const query = `
-            SELECT news_id, category, subcategory, title, abstract 
-            FROM news 
-            LIMIT $1 OFFSET $2
-        `;
-
-        const result = await pool.query(query, [limit, offset]);
-        const countResult = await pool.query('SELECT COUNT(*) FROM news');
-
-        res.json({
-            total: parseInt(countResult.rows[0].count),
-            page: parseInt(page),
-            limit: parseInt(limit),
-            data: result.rows
-        });
-    } catch (err) {
-        console.error('Error fetching news:', err);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
 
 // 启动服务器
 app.listen(PORT, () => {
