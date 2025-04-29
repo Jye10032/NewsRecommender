@@ -99,6 +99,32 @@ db.get('/api/news', async (req, res) => {
 // });
 
 
+// 获取单个新闻详情
+db.get('/api/news/:newsId', async (req, res) => {
+    try {
+        const { newsId } = req.params;
+        const query = 'SELECT * FROM news WHERE news_id = $1';
+        const result = await pool.query(query, [newsId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '新闻不存在'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error('获取新闻详情失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
 
 // router.get('/api/users', async (req, res) => {
 //     try {

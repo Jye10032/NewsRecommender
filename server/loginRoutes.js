@@ -1,8 +1,12 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
+
 import { pool } from './connect.js'; // 引入数据库连接池
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_fallback_secret_key';
 
 
 // 登录接口
@@ -33,8 +37,27 @@ router.post('/api/login', async (req, res) => {
             return res.status(400).json({ success: false, message: '密码错误！' });
         }
 
+
+        // 登录成功后生成令牌
+        const token = jwt.sign(
+            { id: user.user_id, username: user.username },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // 返回令牌和用户信息
+        res.status(200).json({
+            success: true,
+            message: '登录成功！',
+            token,
+            user: {
+                userId: user.user_id,
+                username: user.username
+            }
+        });
+
         // 登录成功
-        res.status(200).json({ success: true, message: '登录成功！' });
+        //res.status(200).json({ success: true, message: '登录成功！' });
     } catch (error) {
         console.error('登录失败：', error);
         res.status(500).json({ success: false, message: '登录失败，请稍后再试！' });

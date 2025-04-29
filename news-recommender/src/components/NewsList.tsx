@@ -5,7 +5,9 @@ import React, { useState, useEffect } from 'react';
 import { LikeOutlined, MessageOutlined, StarOutlined } from '@ant-design/icons';
 import { Avatar, List, Space, message } from 'antd';
 import { News } from '../types/news';
+import { useAuth } from '../contexts/AuthContext.tsx';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 // const data = Array.from({ length: 23 }).map((_, i) => ({
 //     href: 'https://ant.design',
@@ -32,7 +34,8 @@ const IconText = ({ icon, text }: { icon: React.FC; text: string }) => (
 );
 
 const NewsList: React.FC = () => {
-
+    const navigate = useNavigate();
+    const { user, isLoggedIn } = useAuth();
     const [displayNews, setDisplayNews] = useState<DisplayNews[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -41,9 +44,43 @@ const NewsList: React.FC = () => {
         const fetchNews = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get('http://localhost:3001/api/news');
+
+                let response;
+
+                // 根据登录状态决定获取普通新闻还是个性化推荐新闻
+                if (isLoggedIn && user) {
+                    // 确保令牌存在
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        throw new Error('找不到登录令牌');
+                    }
+
+                    // 已登录，获取个性化推荐
+                    response = await axios.get('http://localhost:3001/api/recommendations', {
+                        headers: {
+                            Authorization: `Bearer ${token}`  // 使用JWT令牌
+                        }
+                    });
+                    if (response.data.success) {
+                        message.success('加载个性化推荐新闻');
+                    } else {
+                        message.warning('个性化推荐失败，加载普通新闻');
+                        throw new Error('推荐服务返回失败');
+                    }
+                } else {
+                    // 未登录，获取普通新闻列表
+                    response = await axios.get('http://localhost:3001/api/news');
+                }
+
+                // 检查数据结构，兼容不同的返回格式
+                const newsData = response.data.data ||
+                    response.data.recommendations ||
+                    [];
+
+                //const response = await axios.get('http://localhost:3001/api/news');
+
                 // 将获取的新闻数据与固定展示数据合并
-                const newsWithDisplay = response.data.data.map((item: News, index: number) => ({
+                const newsWithDisplay = newsData.map((item: News, index: number) => ({
                     ...item,
                     avatar: `https://api.dicebear.com/7.x/miniavs/svg?seed=${index}`,
                     imageUrl: "https://gw.alipayobjects.com/zos/rmsportal/mqaQswcyDLcXyDKnZfES.png"
@@ -58,7 +95,22 @@ const NewsList: React.FC = () => {
         };
 
         fetchNews();
-    }, []);
+    }, [isLoggedIn, user]);
+
+    // 添加跳转到详情页的函数
+    const handleNewsClick = (newsId: string) => {
+        // 记录用户点击行为
+        if (isLoggedIn && user) {
+            axios.post('http://localhost:3001/api/user/click', {
+                userId: user.userId,
+                newsId: newsId,
+                timestamp: new Date().toISOString()
+            }).catch(error => console.error('记录点击失败:', error));
+        }
+
+        // 导航到新闻详情页
+        navigate(`/news/${newsId}`);
+    };
 
     return (
 
@@ -91,13 +143,19 @@ const NewsList: React.FC = () => {
                             width={272}
                             alt="logo"
                             src={item.imageUrl}
+                            onClick={() => handleNewsClick(item.news_id)}
                         // src="https://gw.alipayobjects.com/zos/rmsportal/mqaQswcyDLcXyDKnZfES.png"
                         />
                     }
                 >
                     <List.Item.Meta
                         avatar={<Avatar src={item.avatar} />}
-                        title={<a href={item.url}>{item.title}</a>}
+                        // title={<a href={item.url}>{item.title}</a>}
+                        title={
+                            <a onClick={() => handleNewsClick(item.news_id)}>
+                                {item.title}
+                            </a>
+                        }
                         description={item.abstract}
                     />
                 </List.Item>

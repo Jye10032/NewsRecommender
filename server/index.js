@@ -6,8 +6,8 @@ import express from 'express';
 import { corsMiddleware } from './cors.js';
 import newsdb from './db.js'; // 引入新闻路由
 import loginRoutes from './loginRoutes.js'; // 引入登录路由
-
-
+import { getRecommendations } from './controllers/recommendController.js';
+import { verifyToken } from './middleware/auth.js'; // 引入验证中间件s
 
 const { Pool } = pkg;
 
@@ -109,7 +109,8 @@ app.use(express.json()); // 解析 JSON 请求体
 // 使用新闻路由
 app.use('/', newsdb);
 app.use('/', loginRoutes);
-
+// 定义推荐路由
+app.get('/api/recommendations', verifyToken, getRecommendations);
 
 // 启动服务器
 app.listen(PORT, () => {
