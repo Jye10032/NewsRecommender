@@ -1,3 +1,4 @@
+import atexit
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import tensorflow as tf
@@ -39,6 +40,10 @@ word_dict = None
 user_dict = None
 embedding_matrix = None
 config = None
+# 在模块顶部添加
+graph = None
+session = None
+model_loaded = False  # 跟踪模型是否已加载成功
 
 
 def load_resources():
@@ -85,51 +90,70 @@ def load_resources():
 
 
 def load_model():
-    """加载NPA模型"""
-    global model, news_encoder
+    """加载NPA模型"" - 使用单例模式确保只加载一次"""
+    global model, news_encoder, graph, session, model_loaded
 
-    try:
-        # 导入推荐器模块
-        from recommenders.models.newsrec.models.npa import NPAModel
-        from recommenders.models.newsrec.io.mind_iterator import MINDIterator
-        from recommenders.models.newsrec.newsrec_utils import prepare_hparams
-
-        # 准备模型超参数
-        yaml_file = './utils/npa.yaml'
-        hparams = prepare_hparams(yaml_file,
-                                  wordEmb_file=EMBED_PATH,
-                                  wordDict_file=WORD_DICT_PATH,
-                                  userDict_file=USER_DICT_PATH)
-
-        # 初始化模型
-        model = NPAModel(hparams, MINDIterator)
-
-        # 加载预训练权重
-        logger.info(f"尝试加载模型权重: {MODEL_PATH}")
-        model.model.load_weights(MODEL_PATH)
-
-        # 这里添加：手动加载scorer模型权重
-        # 从model.py看，model和scorer共享相同的权重，但架构不同
-        if hasattr(model, 'scorer'):
-            # 使用同样的权重重建scorer
-            model.scorer.set_weights(model.model.get_weights())
-            logger.info("Scorer模型权重已加载")
-
-        # 打印模型输入信息，帮助调试
-        logger.info(f"Model输入: {[i.name for i in model.model.inputs]}")
-        if hasattr(model, 'scorer'):
-            logger.info(f"Scorer输入: {[i.name for i in model.scorer.inputs]}")
-
-        # # 也可以单独加载新闻编码器，用于预处理新闻
-        # news_encoder = tf.keras.models.load_model(NEWS_ENCODER_PATH)
-
-        logger.info("NPA模型加载成功!")
+   # 如果模型已成功加载，直接返回
+    if model_loaded and model is not None:
+        logger.info("模型已加载，跳过重复加载")
         return True
-    except Exception as e:
-        logger.error(f"模型加载失败: {str(e)}")
-        import traceback
-        logger.error(traceback.format_exc())  # 打印完整堆栈信息
-        return False
+
+    # 清理之前的会话和图
+    if session is not None:
+        logger.info("关闭之前的TensorFlow会话")
+        session.close()
+
+    # 创建新的图和会话
+    graph = tf.Graph()
+    with graph.as_default():
+        # 创建新的会话
+        # 设置显存增长选项，避免占用全部GPU内存
+        config = tf.compat.v1.ConfigProto()
+        config.gpu_options.allow_growth = True
+        session = tf.compat.v1.Session(config=config)
+
+        with session.as_default():
+            try:
+                # 导入推荐器模块
+                from recommenders.models.newsrec.models.npa import NPAModel
+                from recommenders.models.newsrec.io.mind_iterator import MINDIterator
+                from recommenders.models.newsrec.newsrec_utils import prepare_hparams
+
+                # 准备模型超参数
+                yaml_file = './utils/npa.yaml'
+                hparams = prepare_hparams(yaml_file,
+                                          wordEmb_file=EMBED_PATH,
+                                          wordDict_file=WORD_DICT_PATH,
+                                          userDict_file=USER_DICT_PATH)
+
+                # 初始化模型
+                model = NPAModel(hparams, MINDIterator)
+
+                # 加载预训练权重
+                logger.info(f"尝试加载模型权重: {MODEL_PATH}")
+                model.model.load_weights(MODEL_PATH)
+
+                model.scorer.set_weights(model.model.get_weights())
+                logger.info("Scorer模型权重已加载")
+
+                # 打印模型输入信息，帮助调试
+                logger.info(f"Model输入: {[i.name for i in model.model.inputs]}")
+                if hasattr(model, 'scorer'):
+                    logger.info(
+                        f"Scorer输入: {[i.name for i in model.scorer.inputs]}")
+
+                # # 也可以单独加载新闻编码器，用于预处理新闻
+                # news_encoder = tf.keras.models.load_model(NEWS_ENCODER_PATH)
+
+                logger.info("NPA模型加载成功!")
+                model_loaded = True
+                return True
+            except Exception as e:
+                logger.error(f"模型加载失败: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
+                model_loaded = False
+                return False
 
 
 # def preprocess_news(news_pool):
@@ -187,13 +211,14 @@ def get_user_embedding(user_id):
 @app.route('/recommend', methods=['POST'])
 def recommend():
     """推荐接口 - 从数据库获取的预处理新闻"""
-    # global model
+    global model, graph, session, model_loaded
     # if model is None:
     # 移除条件判断，每次请求都重新加载模型
-    success = load_model()
-    if not success:
-        return jsonify({'success': False, 'error': '模型加载失败'}), 500
-
+    # 只在首次请求时加载模型
+    if not model_loaded or model is None:
+        success = load_model()
+        if not success:
+            return jsonify({'success': False, 'error': '模型加载失败'}), 500
     try:
         # 获取请求数据
         data = request.json
@@ -202,6 +227,8 @@ def recommend():
         news_pool = data.get('newsPool', [])
 
         count = min(int(data.get('count', 10)), len(news_pool))
+
+        user_preferences = data.get('userPreferences', [])  # 获取用户偏好
 
         logger.info(f"收到推荐请求: 用户={user_id}, 候选新闻数={len(news_pool)}")
 
@@ -255,69 +282,62 @@ def recommend():
         logger.info(
             f"模型输入形状: user_input={user_input.shape}, processed_titles={processed_titles.shape}, history_titles={history_titles.shape}")
 
-        # 5. 调用模型进行预测 - 提供3个输入
-        try:
-            # 限制新闻数量为模型所需的50条
-            max_news = 1  # 模型要求的最大新闻条数
-            if processed_titles.shape[0] > max_news:
-                logger.info(
-                    f"新闻数量({processed_titles.shape[0]})超过模型限制，截断为{max_news}条")
-                processed_titles = processed_titles[:max_news]
-                news_pool = news_pool[:max_news]  # 同时裁剪news_pool保持对应关系
+        # 5. 预测部分使用正确的会话管理
+        with graph.as_default():
+            with session.as_default():
+                try:
+                    # 限制新闻数量为模型所需的50条
+                    max_news = 10  # 模型要求的最大新闻条数
 
-            # 添加这一行：调整处理后标题的维度，添加批次维度
-            processed_titles = processed_titles.reshape(
-                1, processed_titles.shape[0], processed_titles.shape[1])
+                    # 预选新闻
+                    selected_news = news_pool[:max_news]
+                    all_scores = []
 
-            # 记录详细的输入形状以便调试
-            logger.info(f"批量预测的输入形状: user_input={user_input.shape}, "
-                        f"history_titles={history_titles.shape}, "
-                        f"processed_titles={processed_titles.shape}")
+                    # 循环预测每条新闻
+                    for i, news in enumerate(selected_news):
+                        # 处理单条新闻
+                        single_title = processed_titles[i:i+1]
+                        single_title = single_title.reshape(
+                            1, 1, single_title.shape[1])
 
-            # scores = model.model.predict([user_input, processed_titles])
-            scores = model.scorer.predict(
-                [user_input, history_titles, processed_titles])
+                        # 单条预测
+                        score = model.scorer.predict(
+                            [user_input, history_titles, single_title])
+                        raw_score = float(score[0, 0])
 
-            # 处理输出形状，确保能正确提取分数
-            logger.info(f"预测结果形状: {scores.shape}")
+                        # 应用用户偏好提升
+                        category = news.get('category')
+                        if user_preferences and category and category in user_preferences:
+                            logger.info(
+                                f"新闻'{news.get('title', '')}'类别匹配用户偏好，得分提升50%")
+                            raw_score *= 1.5
 
-            # 由于reshape，scores可能也会有额外维度，确保正确提取分数
-            scores_flat = scores.flatten()
+                        all_scores.append(raw_score)
 
-            # new
-            # 如果预测结果维度与新闻数不匹配，进行调整
-            if len(scores_flat) != len(news_pool):
-                logger.warning(
-                    f"预测结果长度({len(scores_flat)})与新闻池长度({len(news_pool)})不匹配!")
-                # 可能需要取第一行或转换分数
-                if len(scores.shape) > 1:
-                    scores_flat = scores[0, :]
+                    news_with_scores = [(news, score)
+                                        for news, score in zip(selected_news, all_scores)]
+                    sorted_news = sorted(
+                        news_with_scores, key=lambda x: x[1], reverse=True)
 
-            # 5. 根据预测分数排序
-            news_with_scores = [(news, float(score))
-                                for news, score in zip(news_pool, scores_flat)]
-            sorted_news = sorted(
-                news_with_scores, key=lambda x: x[1], reverse=True)
+                    # 获取结果
+                    recommendations = [news for news, _ in sorted_news[:count]]
 
-            # 6. 获取前N条推荐
-            recommendations = [news for news, _ in sorted_news[:count]]
+                    return jsonify({
+                        'success': True,
+                        'recommendations': recommendations
+                    })
+                except Exception as e:
+                    logger.error(f"模型预测失败: {str(e)}")
 
-            return jsonify({
-                'success': True,
-                'recommendations': recommendations
-            })
-        except Exception as e:
-            logger.error(f"模型预测失败: {str(e)}")
-
-            # 如果模型预测失败，返回随机推荐
-            import random
-            random.shuffle(news_pool)
-            return jsonify({
-                'success': True,
-                'recommendations': news_pool[:count],
-                'fallback': True,
-                'message': '模型预测失败，使用随机推荐'
-            })
+                    # 如果模型预测失败，返回随机推荐
+                    import random
+                    random.shuffle(news_pool)
+                    return jsonify({
+                        'success': True,
+                        'recommendations': news_pool[:count],
+                        'fallback': True,
+                        'message': '模型预测失败，使用随机推荐'
+                    })
 
     except Exception as e:
         logger.error(f"推荐失败: {str(e)}")
@@ -336,7 +356,19 @@ if __name__ == '__main__':
     # 可以预加载模型或在第一次请求时加载
     app.run(host='0.0.0.0', port=5001)
 
+# 在文件底部添加
 
+# 程序启动时加载资源
+load_resources()
+
+
+@atexit.register
+def cleanup():
+    """程序退出时清理资源"""
+    global session
+    if session is not None:
+        logger.info("关闭TensorFlow会话并释放资源")
+        session.close()
 # @app.route('/recommend', methods=['POST'])
 # def recommend():
 #     data = request.json

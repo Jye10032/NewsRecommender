@@ -1,11 +1,12 @@
 //新闻列表组件  
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { LikeOutlined, MessageOutlined, StarOutlined } from '@ant-design/icons';
 import { Avatar, List, Space, message } from 'antd';
-import { News } from '../types/news';
+import { News } from '../types/types.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { debounce } from 'lodash'; // 导入debounce
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,8 +41,9 @@ const NewsList: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
 
-    useEffect(() => {
-        const fetchNews = async () => {
+    // 1. 将fetchNews移到useEffect外面并使用useCallback包装
+    const fetchNews = useCallback(
+        debounce(async () => {
             try {
                 setLoading(true);
 
@@ -77,8 +79,6 @@ const NewsList: React.FC = () => {
                     response.data.recommendations ||
                     [];
 
-                //const response = await axios.get('http://localhost:3001/api/news');
-
                 // 将获取的新闻数据与固定展示数据合并
                 const newsWithDisplay = newsData.map((item: News, index: number) => ({
                     ...item,
@@ -92,25 +92,37 @@ const NewsList: React.FC = () => {
             } finally {
                 setLoading(false);
             }
-        };
-
+        }, 300),  // 300ms的防抖时间
+        [isLoggedIn, user]  // 依赖项
+    );
+    // 2. 简化useEffect，只负责调用和清理
+    useEffect(() => {
+        // 组件挂载时获取数据
         fetchNews();
-    }, [isLoggedIn, user]);
 
-    // 添加跳转到详情页的函数
-    const handleNewsClick = (newsId: string) => {
-        // 记录用户点击行为
-        if (isLoggedIn && user) {
-            axios.post('http://localhost:3001/api/user/click', {
-                userId: user.userId,
-                newsId: newsId,
-                timestamp: new Date().toISOString()
-            }).catch(error => console.error('记录点击失败:', error));
-        }
+        // 清理函数
+        return () => {
+            fetchNews.cancel(); // 取消未执行的防抖函数
+        };
+    }, [fetchNews]); // 依赖fetchNews
 
-        // 导航到新闻详情页
-        navigate(`/news/${newsId}`);
-    };
+    // 3. 添加防抖的点击处理函数
+    const handleNewsClick = useCallback(
+        debounce(async (newsId: string) => {
+            try {
+                // 先记录点击
+                await axios.post(`/api/news/view/${newsId}`);
+
+                // 然后导航到新闻详情页
+                navigate(`/news/${newsId}`);
+            } catch (error) {
+                console.error('记录点击失败:', error);
+                // 即使记录失败，也继续导航
+                navigate(`/news/${newsId}`);
+            }
+        }, 300),
+        [navigate]
+    );
 
     return (
 
