@@ -27,15 +27,38 @@ export const getRecommendations = async (req, res) => {
         const userId = req.user.id;
         console.log(`为用户 ${userId} 获取个性化推荐`);
 
-        // 1. 从数据库获取最近的新闻作为候选池
-        const newsQuery = `
+        // 获取用户偏好
+        const preferencesQuery = 'SELECT preferences FROM user_preferences WHERE user_id = $1';
+        const preferencesResult = await pool.query(preferencesQuery, [userId]);
+        const userPreferences = preferencesResult.rows.length > 0
+            ? preferencesResult.rows[0].preferences
+            : [];
+        // 从数据库获取新闻
+        let newsQuery;
+        let params = [100]; // 默认获取100条新闻作为候选
+
+        if (userPreferences.length > 0) {
+            // 如果有偏好设置，优先选择这些分类的新闻
+            newsQuery = `
+        (SELECT * FROM news WHERE category = ANY($1::text[]) ORDER BY published_at DESC LIMIT $2)
+        UNION
+        (SELECT * FROM news WHERE category != ALL($1::text[]) ORDER BY published_at DESC LIMIT $2)
+        LIMIT $2
+      `;
+            params = [userPreferences, 100];
+        } else {
+            // 1. 从数据库获取最近的新闻作为候选池
+            newsQuery = `
             SELECT news_id, category, subcategory, title, abstract, url, published_at
             FROM news
             -- WHERE published_at >= NOW() - INTERVAL '30 days'
             ORDER BY published_at DESC
             LIMIT 100
         `;
-        const newsResult = await pool.query(newsQuery);
+            params = [100]; // 设置参数值
+        }
+
+        const newsResult = await pool.query(newsQuery, params);
         const newsPool = newsResult.rows;
 
         if (newsPool.length === 0) {
@@ -66,7 +89,8 @@ export const getRecommendations = async (req, res) => {
             userId,
             newsPool,
             // userHistory,// 添加用户历史记录
-            count
+            count,
+            userPreferences // 将用户偏好传给Python服务
         }, {
             timeout: 5000  // 5秒超时
         });

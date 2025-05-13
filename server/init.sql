@@ -53,3 +53,24 @@ CREATE TABLE IF NOT EXISTS users(
 --     category VARCHAR(50),
 --     published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- );
+
+-- 用户偏好表
+CREATE TABLE IF NOT EXISTS user_preferences (
+  user_id VARCHAR(255) PRIMARY KEY,
+  preferences TEXT[] NOT NULL DEFAULT '{}',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE IF NOT EXISTS news_views (
+    view_id SERIAL PRIMARY KEY,
+    news_id VARCHAR(100) NOT NULL,
+    user_id VARCHAR(255),  -- 可为NULL，表示匿名用户
+    view_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(45) -- 可选，记录IP地址
+);
+
+-- 为提高查询效率创建索引
+CREATE INDEX IF NOT EXISTS idx_news_views_news_id ON news_views(news_id);
+CREATE INDEX IF NOT EXISTS idx_news_views_user_id ON news_views(user_id);

@@ -1,25 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
-
-// 定义用户类型
-interface User {
-    userId: string;
-    username: string;
-    preferences?: string[];
-    email?: string;
-    token?: string; // 添加token属性
-}
-
-// 修改接口定义
-interface AuthContextType {
-    user: User | null;
-    isLoggedIn: boolean;
-    login: (userData: User) => void;
-    register: (username: string, password: string, email: string) => Promise<boolean>;
-    logout: () => void;
-    loading: boolean;
-}
-
+import { jwtDecode } from 'jwt-decode';
+import { useNavigate } from 'react-router-dom';
+import { tokenEvents } from '../utils/axiosConfig';
+// 导入类型定义
+import { User, AuthContextType, JwtPayload } from '../types/types.ts';
 
 // 创建认证上下文
 const AuthContext = createContext<AuthContextType>({
@@ -31,28 +16,94 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
 });
 
+// 在组件顶部添加这个函数
+function isTokenExpired(token: string) {
+    if (!token) return true;
+
+    try {
+        const decoded = jwtDecode<JwtPayload>(token); // 使用jwtDecode而不是jwt_decode
+        // JWT的exp字段是以秒为单位的时间戳
+        return decoded.exp * 1000 < Date.now();
+    } catch (error) {
+        console.error('令牌解析失败:', error);
+        return true;
+    }
+}
+
+
 // 认证提供者组件
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const navigate = useNavigate();
+
+    // 清除登录状态的函数
+    const clearAuthState = () => {
+        setUser(null);
+        setIsLoggedIn(false);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+    };
+
+    // 登出方法 - 保留现有结构，但调用clearAuthState
+    const logout = () => {
+        clearAuthState();
+        navigate('/'); // 可选：导航到首页
+    };
+
+
     // 从本地存储加载用户信息
     useEffect(() => {
         const token = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
-        if (storedUser) {
+
+        // 检查令牌是否存在且未过期
+        if (token && !isTokenExpired(token) && storedUser) {
             try {
                 const userData = JSON.parse(storedUser);
                 setUser(userData);
                 setIsLoggedIn(true);
             } catch (error) {
                 console.error('解析存储的用户数据失败:', error);
-                localStorage.removeItem('user');
+                clearAuthState();
             }
+        } else if (token && isTokenExpired(token)) {
+            // 如果令牌过期，清除状态
+            console.log('登录令牌已过期，已自动退出');
+            clearAuthState();
         }
         setLoading(false);
-    }, []);
+        // 订阅令牌过期事件
+        const unsubscribe = tokenEvents.subscribe(() => {
+            console.log('收到令牌过期通知，执行自动退出');
+            clearAuthState();
+            navigate('/login');
+        });
+
+        return () => {
+            unsubscribe(); // 组件卸载时取消订阅
+        };
+    }, [navigate]);
+
+    // 定期检查令牌是否过期
+    useEffect(() => {
+        if (isLoggedIn) {
+            const checkTokenInterval = setInterval(() => {
+                const token = localStorage.getItem('token');
+                if (token && isTokenExpired(token)) {
+                    console.log('定期检查：令牌已过期，执行自动退出');
+                    clearAuthState();
+                    navigate('/login');
+                }
+            }, 60000); // 每分钟检查一次
+
+            return () => {
+                clearInterval(checkTokenInterval);
+            };
+        }
+    }, [isLoggedIn, navigate]);
 
     // 登录方法
     const login = (userData: User) => {
@@ -92,13 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    // 登出方法 - 保留现有逻辑
-    const logout = () => {
-        setUser(null);
-        setIsLoggedIn(false);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token'); // 同时清除JWT令牌
-    };
+
 
     return (
         <AuthContext.Provider value={{

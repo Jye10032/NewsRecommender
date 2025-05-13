@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form, Input, Button, Checkbox, message } from 'antd';
+import { Form, Input, Button, Checkbox, message, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom'; // 用于页面跳转
 import axios from 'axios';
@@ -47,47 +47,55 @@ export default function Login() {
     };
 
     return (
-        <div className="login-container">
-            <Form
-                name="login"
-                className="login-form"
-                initialValues={{ remember: true }}
-                onFinish={onFinish}
+        <div className="login-page">
+            <Card
+                className="login-card"
+                bordered={true}
+                style={{ width: 400 }}
             >
-                <h2 style={{ textAlign: 'center' }}>登录</h2>
-                <Form.Item
-                    name="username"
-                    rules={[{ required: true, message: '请输入用户名！' }]}
+                <Form
+                    name="login"
+                    className="login-form"
+                    initialValues={{ remember: true }}
+                    onFinish={onFinish}
                 >
-                    <Input
-                        prefix={<UserOutlined className="site-form-item-icon" />}
-                        placeholder="用户名"
-                    />
-                </Form.Item>
-                <Form.Item
-                    name="password"
-                    rules={[{ required: true, message: '请输入密码！' }]}
-                >
-                    <Input.Password
-                        prefix={<LockOutlined className="site-form-item-icon" />}
-                        placeholder="密码"
-                    />
-                </Form.Item>
-                <Form.Item>
-                    <Form.Item name="remember" valuePropName="checked" noStyle>
-                        <Checkbox>记住我</Checkbox>
+                    <h2 style={{ textAlign: 'center', marginBottom: 24 }}>登录</h2>
+                    <Form.Item
+                        name="username"
+                        rules={[{ required: true, message: '请输入用户名！' }]}
+                    >
+                        <Input
+                            prefix={<UserOutlined className="site-form-item-icon" />}
+                            placeholder="用户名"
+                        />
                     </Form.Item>
-                    <a className="login-form-forgot" href="/forgot-password" style={{ float: 'right' }}>
-                        忘记密码？
-                    </a>
-                </Form.Item>
-                <Form.Item>
-                    <Button type="primary" htmlType="submit" className="login-form-button" block>
-                        登录
-                    </Button>
-                    或 <a onClick={() => navigate('/register')}>立即注册！</a>
-                </Form.Item>
-            </Form>
+                    <Form.Item
+                        name="password"
+                        rules={[{ required: true, message: '请输入密码！' }]}
+                    >
+                        <Input.Password
+                            prefix={<LockOutlined className="site-form-item-icon" />}
+                            placeholder="密码"
+                        />
+                    </Form.Item>
+                    <Form.Item>
+                        <Form.Item name="remember" valuePropName="checked" noStyle>
+                            <Checkbox>记住我</Checkbox>
+                        </Form.Item>
+                        <a className="login-form-forgot" href="/forgot-password" style={{ float: 'right' }}>
+                            忘记密码？
+                        </a>
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit" className="login-form-button" block>
+                            登录
+                        </Button>
+                        <div style={{ textAlign: 'center', marginTop: 12 }}>
+                            或 <a onClick={() => navigate('/register')}>立即注册！</a>
+                        </div>
+                    </Form.Item>
+                </Form>
+            </Card>
         </div>
     );
 }

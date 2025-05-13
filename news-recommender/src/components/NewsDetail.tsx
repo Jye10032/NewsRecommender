@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, Card, Skeleton, Button, Tag, Space, Divider, message, Row, Col } from 'antd';
 import { ArrowLeftOutlined, CalendarOutlined, TagOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { News } from '../types/news';
+import { News } from '../types/types.ts';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext.tsx';
@@ -18,7 +18,15 @@ const NewsDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [viewStartTime, setViewStartTime] = useState<number>(Date.now());
 
-
+    // 添加新函数：记录新闻点击
+    const recordNewsView = async (newsId: string) => {
+        try {
+            await axios.post(`/api/news/view/${newsId}`);
+            console.log('已记录新闻点击');
+        } catch (error) {
+            console.error('记录新闻点击失败:', error);
+        }
+    };
     // 随机图片URL（实际项目中应该从新闻数据中获取）
     const imageUrl = `https://picsum.photos/800/400?random=${newsId}`;
 
@@ -43,6 +51,8 @@ const NewsDetail: React.FC = () => {
 
         if (newsId) {
             fetchNewsDetail();
+            // 添加这一行：记录点击
+            recordNewsView(newsId);
             setViewStartTime(Date.now());
         }
 

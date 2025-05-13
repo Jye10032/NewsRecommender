@@ -4,9 +4,12 @@ import dotenv from 'dotenv';
 import { pool, testConnection } from './connect.js'; // 导入测试连接函数
 import express from 'express';
 import { corsMiddleware } from './cors.js';
-import newsdb from './db.js'; // 引入新闻路由
-import loginRoutes from './loginRoutes.js'; // 引入登录路由
+import newsdb from './api/db.js'; // 引入新闻路由
+import loginRoutes from './api/loginRoutes.js'; // 引入登录路由
+import userRoutes from './api/userRoutes.js'; // 引入用户路由
+import newsViewRoutes from './api/newsRoutes.js'; // 引入新闻点击记录路由
 import { getRecommendations } from './controllers/recommendController.js';
+
 import { verifyToken } from './middleware/auth.js'; // 引入验证中间件s
 
 const { Pool } = pkg;
@@ -109,8 +112,13 @@ app.use(express.json()); // 解析 JSON 请求体
 // 使用新闻路由
 app.use('/', newsdb);
 app.use('/', loginRoutes);
+// 添加用户路由
+app.use('/api', userRoutes);
+// 使用新闻点击记录路由
+app.use('/', newsViewRoutes);
 // 定义推荐路由
 app.get('/api/recommendations', verifyToken, getRecommendations);
+
 
 // 启动服务器
 app.listen(PORT, () => {

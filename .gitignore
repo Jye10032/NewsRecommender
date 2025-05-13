@@ -9,3 +9,6 @@ node_modules
 data/
 
 models/
+
+globaltimes_news_2025-04-23_crawl_by_gy.xls
+recommdation-service/requirements.txt

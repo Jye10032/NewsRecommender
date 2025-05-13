@@ -1,7 +1,8 @@
 import React from 'react';
-import { Form, Input, Button, message } from 'antd';
+import { Form, Input, Button, message, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import axios from 'axios'; // 用于发送请求
+import './Register.css';
 
 // import './Register.css'; // 可选：用于自定义样式
 
@@ -57,38 +58,44 @@ export default function Register() {
     };
 
     return (
-        <div className="register-container">
+        <div className="register-page">
             {contextHolder}
-            <Form
-                name="register"
-                className="register-form"
-                onFinish={onFinish}
+            <Card
+                className="register-card"
+                bordered={true}
+                style={{ width: 400 }}
             >
-                <h2 style={{ textAlign: 'center' }}>注册</h2>
-                <Form.Item
-                    name="username"
-                    rules={[{ required: true, message: '请输入用户名！' }]}
+                <Form
+                    name="register"
+                    className="register-form"
+                    onFinish={onFinish}
                 >
-                    <Input
-                        prefix={<UserOutlined className="site-form-item-icon" />}
-                        placeholder="用户名"
-                    />
-                </Form.Item>
-                <Form.Item
-                    name="password"
-                    rules={[{ required: true, message: '请输入密码！' }]}
-                >
-                    <Input.Password
-                        prefix={<LockOutlined className="site-form-item-icon" />}
-                        placeholder="密码"
-                    />
-                </Form.Item>
-                <Form.Item>
-                    <Button type="primary" htmlType="submit" className="register-form-button" block>
-                        注册
-                    </Button>
-                </Form.Item>
-            </Form>
+                    <h2 style={{ textAlign: 'center' }}>注册</h2>
+                    <Form.Item
+                        name="username"
+                        rules={[{ required: true, message: '请输入用户名！' }]}
+                    >
+                        <Input
+                            prefix={<UserOutlined className="site-form-item-icon" />}
+                            placeholder="用户名"
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="password"
+                        rules={[{ required: true, message: '请输入密码！' }]}
+                    >
+                        <Input.Password
+                            prefix={<LockOutlined className="site-form-item-icon" />}
+                            placeholder="密码"
+                        />
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit" className="register-form-button" block>
+                            注册
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </Card>
         </div>
     );
 }

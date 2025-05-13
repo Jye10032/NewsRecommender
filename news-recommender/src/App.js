@@ -1,13 +1,16 @@
 import logo from './logo.svg';
 import './App.css';
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import HomePage from './components/HomePage.tsx';
+import TrendingNewsPage from './components/Trending.tsx';
 import Login from './views/login/Login';
 import Register from './views/register/Register';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import NewsDetail from './components/NewsDetail.tsx';
+import Settings from './views/user/settings.tsx';
 import './utils/axiosConfig';  // 导入拦截器配置
+
 
 function App() {
   return (
@@ -33,10 +36,14 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/*" element={<HomePage />} />
+            {/* <Route path="/trending" element={<TrendingNewsPage />} /> */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/category/:category" element={<HomePage />} />
+            <Route path="/category/:category/:subcategory" element={<HomePage />} />
             <Route path="/news/:newsId" element={<NewsDetail />} />
+            <Route path="/settings" element={<Settings />} />
             {/* <Route path="*" element={<NotFound />} /> */}
           </Routes>
         </AuthProvider>
@@ -44,5 +51,10 @@ function App() {
     </div>
   );
 }
+
+// // 创建一个包装组件，在HomePage中显示Trending内容
+// const TrendingNewsInHomePage = () => {
+//   return <Navigate to="/?page=trending" replace />;
+// };
 
 export default App;
