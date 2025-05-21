@@ -1,0 +1,35 @@
+.admin-login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f2f5;
+    background-image: url('https://gw.alipayobjects.com/zos/rmsportal/TVYTbAXWheQpRcWDaDMu.svg');
+    background-repeat: no-repeat;
+    background-position: center 110px;
+    background-size: 100%;
+}
+
+.login-card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.login-form {
+    max-width: 100%;
+}
+
+.login-form-forgot {
+    float: right;
+}
+
+.login-form-button {
+    margin-top: 16px;
+}
+
+/* 媒体查询，在小屏幕上调整卡片宽度 */
+@media (max-width: 576px) {
+    .login-card {
+        width: 90% !important;
+        max-width: 400px;
+    }
+}

@@ -1,0 +1,41 @@
+.demo-logo-vertical {
+    line-height: 32px;
+    color: white;
+    background-color: rgba(250, 23, 23, 0.3);
+    font-size: 10px;
+    margin: 10px;
+    text-align: center;
+}
+
+/* 在NewsSandBox.css文件中添加 */
+.ant-layout-sider-light {
+    box-shadow: 2px 0 8px 0 rgba(29, 35, 41, .05);
+    border-right: 1px solid #090909;
+}
+
+.logo {
+    height: 32px;
+    margin: 16px;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 确保文字颜色与背景形成对比 */
+h1,
+h2,
+h3,
+h4,
+h5,
+p,
+span {
+    color: rgba(0, 0, 0, 0.85) !important;
+    /* 深色文字 */
+}
+
+/* 内容区样式 */
+.site-layout-background {
+    background: #fff !important;
+}

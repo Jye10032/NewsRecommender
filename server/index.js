@@ -16,6 +16,8 @@ const { Pool } = pkg;
 
 const { Client } = pkg;
 
+import adminRoutes from './admin/routes/adminRoutes.js'; // 引入管理员API路由
+
 
 
 const app = express();
@@ -80,6 +82,14 @@ async function initializeDatabase() {
         await targetClient.query(sql);
         console.log('Tables initialized successfully');
 
+        //初始化管理员表
+        const adminsql = await fs.readFile('./admin/init-admin.sql', 'utf-8');
+        await targetClient.query(adminsql);
+        console.log('Admin tables initialized successfully');
+
+        //初始化管理员数据
+        const initAdmin = await import('./init-admin.js');
+        await initAdmin.default(targetClient);
 
         console.log('Connected to target database successfully');
 
@@ -88,6 +98,7 @@ async function initializeDatabase() {
     } finally {
         await targetClient.end();
     }
+
 
     await testConnection(); // 调用测试连接函数
 }
@@ -118,7 +129,8 @@ app.use('/api', userRoutes);
 app.use('/', newsViewRoutes);
 // 定义推荐路由
 app.get('/api/recommendations', verifyToken, getRecommendations);
-
+// 管理员API路由
+app.use('/admin', adminRoutes);
 
 // 启动服务器
 app.listen(PORT, () => {

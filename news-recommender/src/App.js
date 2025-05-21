@@ -11,6 +11,11 @@ import NewsDetail from './components/NewsDetail.tsx';
 import Settings from './views/user/settings.tsx';
 import './utils/axiosConfig';  // 导入拦截器配置
 
+// 导入管理员组件
+import AdminLogin from './admin/views/login/Login';
+// import AdminNews from './admin/views/sandbox/news/News';
+// import AdminDetail from './admin/views/sandbox/news/Detail';
+import NewsSandBox from './admin/views/sandbox/NewsSandBox';
 
 function App() {
   return (
@@ -36,7 +41,17 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/*" element={<HomePage />} />
+            {/* 管理员路由 */}
+            <Route path="/admin">
+              <Route path="login" element={<AdminLogin />} />
+              {/* <Route path="news" element={<AdminNews />} />
+              <Route path="detail/:id" element={<AdminDetail />} /> */}
+              {/* <Route path="*" element={
+                localStorage.getItem("token") ? <NewsSandBox /> : <Navigate to="/admin/login" />
+              } /> */}
+              <Route path="*" element={<NewsSandBox />} />
+            </Route>
+            {/* 前台路由 */}
             {/* <Route path="/trending" element={<TrendingNewsPage />} /> */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -44,6 +59,8 @@ function App() {
             <Route path="/category/:category/:subcategory" element={<HomePage />} />
             <Route path="/news/:newsId" element={<NewsDetail />} />
             <Route path="/settings" element={<Settings />} />
+            {/* 主页路由 */}
+            <Route path="/*" element={<HomePage />} />
             {/* <Route path="*" element={<NotFound />} /> */}
           </Routes>
         </AuthProvider>
