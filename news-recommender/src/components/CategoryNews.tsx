@@ -60,7 +60,7 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory }) =>
             borderBottom: '1px solid #f0f0f0',
             marginBottom: '20px'
         }}>
-            <Title
+            {/* <Title
                 level={2}
                 style={{
                     fontWeight: 'bold',
@@ -69,10 +69,10 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory }) =>
                 }}
             >
                 {subcategory ? `${category} - ${subcategory}` : category}
-            </Title>
-            <Typography.Text type="secondary">
+            </Title> */}
+            {/* <Typography.Text type="secondary">
                 最新{subcategory || category}相关新闻
-            </Typography.Text>
+            </Typography.Text> */}
         </div>
             {/* <Title level={2}>
                 {subcategory ? `${category} - ${subcategory}` : category}

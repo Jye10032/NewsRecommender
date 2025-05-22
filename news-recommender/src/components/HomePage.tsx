@@ -253,7 +253,12 @@ const HomePage: React.FC = () => {
                     mode="horizontal"
                     selectedKeys={selectedKeys}
                     items={menuItems} // 使用menuItems替代items
-                    style={{ flex: 1, minWidth: 0 }}
+                    style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontSize: '16px',  // 增大字体
+                        fontWeight: '500'  // 增加字重使其更清晰
+                    }}
                 />
                 <AutoComplete
                     popupMatchSelectWidth={252}
@@ -290,6 +295,29 @@ const HomePage: React.FC = () => {
                         <Breadcrumb.Item>所有新闻</Breadcrumb.Item>
                     )}
                 </Breadcrumb>
+                {location.pathname.startsWith('/category/') && (
+                    <div style={{ margin: '0 0 16px 0' }}>
+                        <h1 style={{
+                            fontSize: '28px',
+                            fontWeight: 'bold',
+                            margin: 0,
+                            color: '#262626'
+                        }}>
+                            {location.pathname.split('/')[2]}
+                            {location.pathname.split('/').length > 3 &&
+                                ` - ${location.pathname.split('/')[3]}`}
+                        </h1>
+                        <p style={{
+                            fontSize: '16px',
+                            color: '#8c8c8c',
+                            margin: '8px 0 0 0'
+                        }}>
+                            最新{location.pathname.split('/').length > 3 ?
+                                location.pathname.split('/')[3] :
+                                location.pathname.split('/')[2]}相关新闻
+                        </p>
+                    </div>
+                )}
                 <div
                     style={{
                         padding: 24,
