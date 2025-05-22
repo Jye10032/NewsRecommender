@@ -235,6 +235,8 @@ const HomePage: React.FC = () => {
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
+                    backgroundColor: '#fff', // 改为白色背景
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.09)' // 添加阴影提升层次感
                 }}
             >
                 <div className="demo-logo" />
@@ -247,7 +249,7 @@ const HomePage: React.FC = () => {
                     style={{ flex: 1, minWidth: 0 }}
                 /> */}
                 <Menu
-                    theme="dark"
+                    theme="light"
                     mode="horizontal"
                     selectedKeys={selectedKeys}
                     items={menuItems} // 使用menuItems替代items

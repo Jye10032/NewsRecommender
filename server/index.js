@@ -87,9 +87,9 @@ async function initializeDatabase() {
         await targetClient.query(adminsql);
         console.log('Admin tables initialized successfully');
 
-        //初始化管理员数据
-        const initAdmin = await import('./init-admin.js');
-        await initAdmin.default(targetClient);
+        // //初始化管理员数据
+        // const initAdmin = await import('./init-admin.js');
+        // await initAdmin.default(targetClient);
 
         console.log('Connected to target database successfully');
 

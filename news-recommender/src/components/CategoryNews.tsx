@@ -55,20 +55,42 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory }) =>
     };
 
     return (
-        <>
-            <Title level={2}>
+        <><div style={{
+            padding: '20px 0',
+            borderBottom: '1px solid #f0f0f0',
+            marginBottom: '20px'
+        }}>
+            <Title
+                level={2}
+                style={{
+                    fontWeight: 'bold',
+                    color: '#262626',
+                    marginBottom: '5px'
+                }}
+            >
                 {subcategory ? `${category} - ${subcategory}` : category}
             </Title>
+            <Typography.Text type="secondary">
+                最新{subcategory || category}相关新闻
+            </Typography.Text>
+        </div>
+            {/* <Title level={2}>
+                {subcategory ? `${category} - ${subcategory}` : category}
+            </Title> */}
             <Spin spinning={loading}>
                 <List
                     itemLayout="vertical"
                     size="large"
                     pagination={{
                         onChange: page => {
-                            window.scrollTo(0, 0);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
                         },
                         pageSize: 5,
                         align: 'center',
+                        showSizeChanger: true,
+                        pageSizeOptions: ['5', '10', '20'],
+                        showTotal: (total) => `共 ${total} 条新闻`,
+                        style: { marginTop: '20px' }
                     }}
                     dataSource={news}
                     renderItem={(item) => (
@@ -84,9 +106,19 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory }) =>
                                     width={272}
                                     alt="logo"
                                     src={item.imageUrl}
+                                    style={{ borderRadius: '8px' }}
                                 />
                             }
+                            style={{
+                                padding: '16px',
+                                transition: 'all 0.3s',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                            className="news-item-hover" // 添加自定义类名用于CSS悬停效果
+                            onClick={() => handleNewsClick(item.news_id)}
                         >
+
                             <List.Item.Meta
                                 avatar={<Avatar src={item.avatar} />}
                                 title={

@@ -64,7 +64,15 @@ const UserAuth: React.FC = () => {
                 </Dropdown>
             ) : (
                 <Space>
-                    <Button type="primary" onClick={handleLoginClick}>
+                    <Button
+                        type="default"  // 将type从"primary"改为"default"
+                        onClick={handleLoginClick}
+                        style={{
+
+                            color: '#595959',
+                            marginLeft: '15px'
+                        }}
+                    >
                         登录
                     </Button>
                     <Button onClick={handleRegisterClick}>
