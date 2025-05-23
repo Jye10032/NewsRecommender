@@ -3,6 +3,18 @@ import jwt from 'jsonwebtoken';
 
 // 验证管理员JWT令牌
 export const verifyAdminToken = (req, res, next) => {
+    // 开发环境可临时跳过认证
+    if (process.env.NODE_ENV === 'development') {
+        req.admin = { id: 1 }; // 模拟超级管理员身份
+        return next();
+    }
+
+    // 正式环境正常验证
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, message: '未提供认证令牌' });
+    }
+
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {

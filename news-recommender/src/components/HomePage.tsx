@@ -39,7 +39,7 @@ interface CategoryResponse {
 const items = [
     {
         key: '/',
-        label: <Link to="/">首页</Link>,
+        label: <Link to="/">Home</Link>,
     },
     {
         key: '/trending',

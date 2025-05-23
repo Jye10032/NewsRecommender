@@ -1,11 +1,12 @@
-import { pool } from '../connect.js';
+//清除重复数据脚本
+import { pool } from '../../connect.js';
 
 async function cleanupDuplicates() {
-    try {
-        console.log('开始清理重复菜单项...');
+  try {
+    console.log('开始清理重复菜单项...');
 
-        // 使用CTE和窗口函数删除重复的菜单项，保留ID最小的一条
-        await pool.query(`
+    // 使用CTE和窗口函数删除重复的菜单项，保留ID最小的一条
+    await pool.query(`
       WITH duplicates AS (
         SELECT id, 
                ROW_NUMBER() OVER (PARTITION BY key_path ORDER BY id) as row_num
@@ -17,8 +18,8 @@ async function cleanupDuplicates() {
       );
     `);
 
-        // 清理角色权限关联表中的重复项
-        await pool.query(`
+    // 清理角色权限关联表中的重复项
+    await pool.query(`
       WITH duplicates AS (
         SELECT id, 
                ROW_NUMBER() OVER (PARTITION BY role_id, permission_id ORDER BY id) as row_num
@@ -30,8 +31,8 @@ async function cleanupDuplicates() {
       );
     `);
 
-        // 清理管理员角色关联表中的重复项
-        await pool.query(`
+    // 清理管理员角色关联表中的重复项
+    await pool.query(`
       WITH duplicates AS (
         SELECT id, 
                ROW_NUMBER() OVER (PARTITION BY admin_user_id, role_id ORDER BY id) as row_num
@@ -43,12 +44,12 @@ async function cleanupDuplicates() {
       );
     `);
 
-        console.log('重复数据清理完成！');
-    } catch (error) {
-        console.error('清理重复数据时出错:', error);
-    } finally {
-        await pool.end();
-    }
+    console.log('重复数据清理完成！');
+  } catch (error) {
+    console.error('清理重复数据时出错:', error);
+  } finally {
+    await pool.end();
+  }
 }
 
 cleanupDuplicates();

@@ -8,88 +8,58 @@ export const login = async (req, res) => {
         const { username, password } = req.body;
 
         // 查询管理员用户 - 使用query而不是execute
-        const usersResult = await pool.query(
-            'SELECT * FROM admin_users WHERE username = $1 AND status = 1',
-            [username]
-        );
+        // 查询用户，包括角色和分类信息
+        const userResult = await pool.query(`
+            SELECT u.*, r.role_name, r.role_code, c.name as category_name
+            FROM admin_users u
+            LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN categories c ON u.category_id = c.id
+            WHERE u.username = $1
+        `, [username]);
 
-        // PostgreSQL返回结果在rows属性中
-        const users = usersResult.rows;
-
-        if (users.length === 0) {
-            return res.status(401).json({
-                success: false,
-                message: '用户名或密码错误'
-            });
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({ success: false, message: '用户名或密码错误' });
         }
 
-        const user = users[0];
+        const admin = userResult.rows[0];
+
 
         // 验证密码
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: '用户名或密码错误'
-            });
-        }
-
-        // 获取用户角色和权限
-        const rolesResult = await pool.query(`
-      SELECT r.* FROM roles r
-      JOIN admin_user_roles aur ON r.id = aur.role_id
-      WHERE aur.admin_user_id = $1
-    `, [user.id]);
-
-        // PostgreSQL结果在rows属性中
-        const roles = rolesResult.rows;
-
-        // 获取权限
-        const permissions = [];
-        if (roles.length > 0) {
-            const roleIds = roles.map(r => r.id);
-
-            // 使用参数化查询代替字符串拼接
-            const placeholders = roleIds.map((_, i) => `$${i + 1}`).join(',');
-
-            const permsResult = await pool.query(`
-        SELECT p.permission_code FROM permissions p
-        JOIN role_permissions rp ON p.id = rp.permission_id
-        WHERE rp.role_id IN (${placeholders})
-      `, roleIds);
-
-            permissions.push(...permsResult.rows.map(p => p.permission_code));
-        }
-
-        // 更新最后登录时间
-        await pool.query(
-            'UPDATE admin_users SET last_login = NOW() WHERE id = $1',
-            [user.id]
-        );
-
-        // 生成JWT令牌
-        const token = jwt.sign(
-            {
-                id: user.id,
-                username: user.username,
-                roles: roles.map(r => r.role_code),
-                permissions
+        res.json({
+            success: true,
+            message: '登录成功',
+            token: token,
+            id: admin.id,
+            username: admin.username,
+            role: {
+                id: admin.role_id,
+                roleName: admin.role_name,
+                roleCode: admin.role_code
             },
-            process.env.JWT_SECRET || 'your_jwt_secret_key', // 添加默认密钥，但生产环境应当使用环境变量
-            { expiresIn: '1d' }
-        );
+            category_id: admin.category_id,
+            category: admin.category_id ? {
+                id: admin.category_id,
+                name: admin.category_name
+            } : null
+        });
 
         // 返回成功响应
         return res.json({
             success: true,
-            token,
-            user: {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                avatar: user.avatar,
-                role: roles.map(r => r.role_name).join(',')
-            }
+            message: '登录成功',
+            token: token,
+            id: admin.id,
+            username: admin.username,
+            role: {
+                id: admin.role_id,
+                roleName: admin.role_name,
+                roleCode: admin.role_code
+            },
+            category_id: admin.category_id,
+            category: admin.category_id ? {
+                id: admin.category_id,
+                name: admin.category_name
+            } : null
         });
 
     } catch (error) {

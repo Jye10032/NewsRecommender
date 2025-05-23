@@ -107,7 +107,8 @@ export default function SideMenu({ collapsed }) {
     }, []);
     // 处理菜单点击事件
     const handleMenuClick = (e) => {
-        navigate(e.key);
+        // 添加前缀，确保导航到 /admin 开头的路径
+        navigate(`/admin${e.key}`);
     };
 
     // 递归渲染菜单的函数
@@ -145,8 +146,10 @@ export default function SideMenu({ collapsed }) {
                     <Menu
                         onClick={handleMenuClick}
                         mode="inline"
-                        selectedKeys={[location.pathname]}
-                        defaultOpenKeys={['/' + location.pathname.split('/')[1]]}
+                        // 从 location.pathname 中移除 /admin 前缀以匹配菜单项的 key
+                        selectedKeys={[location.pathname.replace('/admin', '')]}
+                        // 同样修改 defaultOpenKeys 的计算方式
+                        defaultOpenKeys={['/' + location.pathname.replace('/admin', '').split('/')[1]]}
                     >
                         {renderMenu(menu)}
                     </Menu>

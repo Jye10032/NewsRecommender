@@ -11,7 +11,7 @@ const UserForm = forwardRef((props, ref) => {
     3: 'editor'
   }
   useEffect(() => {
-    // 若打开的是超级管理员的编辑对话框，不使用下列方法会导致区域可选框可选
+    // 若打开的是超级管理员的编辑对话框，不使用下列方法会导致分类可选框可选
     setIsDisabled(props.isSelectDisabled)
   }, [props])
   // 选择角色的回调函数
@@ -19,35 +19,35 @@ const UserForm = forwardRef((props, ref) => {
     if (value === 1) {
       setIsDisabled(true)
       ref.current.setFieldsValue({
-        region: ''
+        category_id: null
       })
     } else {
       setIsDisabled(false)
     }
   }
-  // 根据登录用户的权限来显示可选的区域
-  function checkRegionDisable(item) {
-    const { roleId, region } = JSON.parse(localStorage.getItem('token'))
+  // 根据登录用户的权限来显示可选的分类
+  function checkCategoryDisable(item) {
+    const { roleId, category_id } = JSON.parse(localStorage.getItem('adminToken'))
     // 若打开的是编辑对话框
     if (props.isUpdate) {
-      // 除超级管理员，其他角色不能进行其他区域选择
+      // 除超级管理员，其他角色不能进行其他分类选择
       if (rank[roleId] === 'superAdmin') {
         return false
       } else {
         return true
       }
     } else {
-      // 若打开的是添加对话框，除超级管理员，其他角色只能选择自己所在区域
+      // 若打开的是添加对话框，除超级管理员，其他角色只能选择自己所在分类
       if (rank[roleId] === 'superAdmin') {
         return false
       } else {
-        return item.value !== region
+        return item.id !== category_id
       }
     }
   }
   // 根据登录用户的权限来显示可选的角色
   function checkRoleDisable(item) {
-    const { roleId } = JSON.parse(localStorage.getItem('token'))
+    const { roleId } = JSON.parse(localStorage.getItem('adminToken'))
     // 若打开的是编辑对话框
     if (props.isUpdate) {
       // 除超级管理员，其他角色只不能修改角色
@@ -57,7 +57,7 @@ const UserForm = forwardRef((props, ref) => {
         return true
       }
     } else {
-      // 若打开的是添加对话框，除超级管理员，其他角色只能选择比自己低一级的角色（即只区域管理员能选区域编辑，区域编辑什么也不能选）
+      // 若打开的是添加对话框，除超级管理员，其他角色只能选择比自己低一级的角色（即只分类管理员能选分类编辑，分类编辑什么也不能选）
       if (rank[roleId] === 'superAdmin') {
         return false
       } else {
@@ -82,7 +82,7 @@ const UserForm = forwardRef((props, ref) => {
           rules={[
             {
               required: true,
-              message: 'Please input the title of collection!'
+              message: '请输入用户名！'
             }
           ]}
         >
@@ -94,34 +94,35 @@ const UserForm = forwardRef((props, ref) => {
           rules={[
             {
               required: true,
-              message: 'Please input the title of collection!'
+              message: '请输入密码！'
             }
           ]}
         >
           <Input />
         </Form.Item>
         <Form.Item
-          name="region"
-          label="区域"
+          name="category_id"
+          label="分类"
           rules={
             isDisabled
               ? []
               : [
-                  {
-                    required: true,
-                    message: 'Please input the title of collection!'
-                  }
-                ]
+                {
+                  required: true,
+                  message: '请选择分类！'
+                }
+              ]
           }
         >
           <Select disabled={isDisabled}>
-            {props.regionList.map((region) => {
+            {props.categoryList?.map((category) => {
               return (
                 <Option
-                  key={region.value}
-                  disabled={checkRegionDisable(region)}
+                  key={category.id}
+                  value={category.id}
+                  disabled={checkCategoryDisable(category)}
                 >
-                  {region.title}
+                  {category.name}
                 </Option>
               )
             })}
@@ -133,7 +134,7 @@ const UserForm = forwardRef((props, ref) => {
           rules={[
             {
               required: true,
-              message: 'Please input the title of collection!'
+              message: '请选择角色！'
             }
           ]}
         >

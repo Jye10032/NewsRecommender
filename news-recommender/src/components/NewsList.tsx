@@ -168,8 +168,10 @@ const NewsList: React.FC = () => {
                                 {item.title}
                             </a>
                         }
-                        description={item.abstract}
+                        description={item.author ? `作者: ${item.author}` : '未知作者'}
+
                     />
+                    {item.abstract}
                 </List.Item>
             )}
         />

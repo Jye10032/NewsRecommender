@@ -23,7 +23,7 @@ adminAxios.interceptors.request.use(
                 console.error('解析admin token失败:', error);
             }
         }
-        return config;
+        return config; // 确保这里返回config对象
     },
     (error) => {
         return Promise.reject(error);

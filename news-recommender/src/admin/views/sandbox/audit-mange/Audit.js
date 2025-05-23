@@ -1,34 +1,29 @@
-import axios from 'axios'
+// filepath: c:\Users\Ming Gy\Desktop\graduate\NewsRecommender\news-recommender\src\admin\views\sandbox\audit-mange\Audit.js
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Table, Button, notification, message } from 'antd'
+import adminAxios from '../../../utils/Request'
 
 export default function Audit() {
   const [newsList, setNewsList] = useState([])
-  const { roleId, username, region } = JSON.parse(localStorage.getItem('token'))
+  const adminTokenStr = localStorage.getItem('adminToken');
+  const { role, username, category_id } = adminTokenStr ? JSON.parse(adminTokenStr) : {};
+  const roleId = role?.id || 1;
+
   useEffect(() => {
-    axios.get(`/news?auditState=1&_expand=category`).then((res) => {
-      if (roleId === 1) {
-        return setNewsList(res.data)
-      } else if (roleId === 2) {
-        const list = res.data.filter((item) => {
-          if ((item.roleId === 3 && item.region === region) || item.author === username) {
-            return item
-          }
-          return null
-        })
-        return setNewsList(list)
-      }
-    })
-  }, [roleId, username, region])
+    getNewsList();
+  }, [roleId, username, category_id])
+
   // 请求新闻数据
   function getNewsList() {
-    axios.get(`/news?auditState=1&_expand=category`).then((res) => {
+    adminAxios.get(`/news?auditState=1&_expand=category`).then((res) => {
       if (roleId === 1) {
+        // 超级管理员可以看到所有新闻
         return setNewsList(res.data)
       } else if (roleId === 2) {
+        // 分类管理员只能看到自己分类下的编辑和自己的新闻
         const list = res.data.filter((item) => {
-          if ((item.roleId === 3 && item.region === region) || item.author === username) {
+          if ((item.roleId === 3 && item.category_id === category_id) || item.author === username) {
             return item
           }
           return null
@@ -37,9 +32,10 @@ export default function Audit() {
       }
     })
   }
+
   // 审核操作
   function handleAudit(item, auditState, publishState) {
-    axios
+    adminAxios
       .patch(`/news/${item.id}`, {
         auditState,
         publishState
@@ -59,6 +55,7 @@ export default function Audit() {
         }
       )
   }
+
   // table表格要渲染的数据
   const columns = [
     {
@@ -74,9 +71,9 @@ export default function Audit() {
     },
     {
       title: '新闻分类',
-      dataIndex: 'categoryId',
+      dataIndex: 'category_id',
       render: (_, item) => {
-        return item.category.title
+        return item.category.name
       }
     },
     {
@@ -107,6 +104,7 @@ export default function Audit() {
       }
     }
   ]
+
   return (
     <div>
       <Table

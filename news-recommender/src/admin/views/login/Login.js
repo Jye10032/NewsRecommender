@@ -20,8 +20,9 @@ export default function Login() {
                 // 在管理员登录成功后存储 token
                 localStorage.setItem('adminToken', JSON.stringify({
                     token: response.data.token,
-                    username: response.data.user.username,
-                    role: response.data.user.role
+                    id: response.data.id,
+                    username: response.data.username,
+                    role: response.data.role
                 }));
 
                 message.success('管理员登录成功！');

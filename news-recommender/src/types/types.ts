@@ -17,6 +17,11 @@ export interface News {
     title_entities?: any;
     abstract_entities?: any;
     published_at?: string;
+    //new
+    author?: string;
+    view_count?: number; // 添加这一行
+    source?: string;     // 还应添加这个，因为你也在使用 item.source
+    content?: string;    // 添加这个，因为你在使用 item.content
 }
 
 // 定义用户类型

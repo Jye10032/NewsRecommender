@@ -1,14 +1,19 @@
 -- 管理员用户表
+-- 管理员用户表
 CREATE TABLE IF NOT EXISTS admin_users (
-  id SERIAL PRIMARY KEY,  -- 使用SERIAL代替INT AUTO_INCREMENT
+  id SERIAL PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   email VARCHAR(100),
   avatar VARCHAR(255),
-  status SMALLINT DEFAULT 1, -- PostgreSQL使用SMALLINT代替TINYINT
+  role_id INTEGER,  -- 添加角色ID字段
+  category_id INTEGER, -- 添加分类ID字段
+  status SMALLINT DEFAULT 1,
   last_login TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 );
 
 -- 角色表
@@ -65,3 +70,26 @@ CREATE TABLE IF NOT EXISTS menus (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 创建分类表
+CREATE TABLE IF NOT EXISTS categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(100) NOT NULL UNIQUE,
+  parent_id INTEGER DEFAULT NULL,
+  level INTEGER DEFAULT 1, -- 1: 主分类, 2: 子分类
+  sort_order INTEGER DEFAULT 0,
+  status SMALLINT DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 获取主分类ID的辅助函数
+CREATE OR REPLACE FUNCTION get_parent_id(parent_code VARCHAR) RETURNS INTEGER AS $$
+DECLARE
+  parent_id INTEGER;
+BEGIN
+  SELECT id INTO parent_id FROM categories WHERE code = parent_code;
+  RETURN parent_id;
+END;
+$$ LANGUAGE plpgsql;

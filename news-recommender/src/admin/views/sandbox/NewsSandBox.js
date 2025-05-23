@@ -114,7 +114,7 @@ export default function NewsSandBox() {
                             overflow: 'auto'
                         }}
                     >
-                        <Home></Home>
+                        {/* <Home></Home> */}
                         <NewsRouter></NewsRouter>
                     </Content>
                 </Layout>

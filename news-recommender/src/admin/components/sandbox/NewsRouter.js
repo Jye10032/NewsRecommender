@@ -83,17 +83,16 @@ export default function NewsSandBox() {
                 ) : (
 
                     <Routes>
-                        <Route path="/admin">
-                            <Route path="home" element={<Home />} />
-                            <Route path="user-manage/list" element={<UserList />} />
-                            <Route path="right-manage/role/list" element={<RoleList />} />
-                            <Route path="right-manage/right/list" element={<RightList />} />
-                            {/* <Route path="news-manage/add" element={<NewsAdd />} />
+
+                        <Route path="home" element={<Home />} />
+                        <Route path="user-manage/list" element={<UserList />} />
+                        <Route path="right-manage/role/list" element={<RoleList />} />
+                        <Route path="right-manage/right/list" element={<RightList />} />
+                        {/* <Route path="news-manage/add" element={<NewsAdd />} />
                                 <Route path="news-manage/draft" element={<NewsDraft />} />
                                 <Route path="news-manage/category" element={<NewsCategory />} /> */}
-                            <Route path="" element={<Navigate to="home" />} />
-                            <Route path="*" element={<Nopermission />} />
-                        </Route>
+                        <Route path="" element={<Navigate to="home" />} />
+                        <Route path="*" element={<Nopermission />} />
                     </Routes>
                 )}
             </Content>

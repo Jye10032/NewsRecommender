@@ -1,15 +1,19 @@
 import UserForm from './UserForm'
 import React, { useEffect, useState, useRef } from 'react'
 import { Table, Switch, Button, Modal, message } from 'antd'
-import axios from 'axios'
+import adminAxios from '../../../utils/Request'
+import { API_URL } from '../../../utils/api'
 import { EditOutlined, DeleteOutlined, ExclamationCircleFilled } from '@ant-design/icons'
 const { confirm } = Modal
+
+
+
 
 export default function UserList() {
     const addForm = useRef()
     const editForm = useRef()
     const [userList, setUserList] = useState([])
-    const [regionList, setRegionList] = useState([])
+    const [categoryList, setCategoryList] = useState([])
     const [roleList, setRoleList] = useState([])
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -22,60 +26,86 @@ export default function UserList() {
             2: 'admin',
             3: 'editor'
         }
-        axios.get('http://localhost:8000/users?_expand=role').then((res) => {
-            //过滤权限比登录用户大的用户
-            const { roleId, username, region } = JSON.parse(localStorage.getItem('token'))
-            const list = res.data
-            setUserList(
-                rank[roleId] === 'superAdmin'
-                    ? list
-                    : [
-                        ...list.filter((user) => {
-                            return user.username === username
-                        }),
-                        ...list.filter((user) => {
-                            return user.region === region && rank[user.roleId] === 'editor'
-                        })
-                    ]
-            )
-            setUserList(res.data)
-        })
-        axios.get('http://localhost:8000/regions').then((res) => {
-            setRegionList(res.data)
-        })
-        axios.get('http://localhost:8000/roles').then((res) => {
+        adminAxios.get('/users/with-roles').then((res) => {
+            // 获取当前登录用户信息
+            const adminTokenStr = localStorage.getItem('adminToken');
+            if (adminTokenStr) {
+                try {
+                    const adminToken = JSON.parse(adminTokenStr);
+                    const { role, username } = adminToken;
+                    const roleId = role?.id || 1; // 默认为超级管理员
+                    const category_id = adminToken.category_id; // 从token获取分类ID
+
+                    const list = res.data;
+                    const rank = {
+                        1: 'superAdmin',
+                        2: 'admin',
+                        3: 'editor'
+                    };
+
+                    // 根据角色过滤用户列表
+                    setUserList(
+                        rank[roleId] === 'superAdmin'
+                            ? list // 超级管理员可以看到所有用户
+                            : [
+                                ...list.filter(user => user.username === username), // 自己
+                                ...list.filter(user =>
+                                    user.category?.id === category_id && // 同一分类
+                                    rank[user.role?.id] === 'editor' // 角色是编辑
+                                )
+                            ]
+                    );
+                } catch (error) {
+                    console.error('解析token失败:', error);
+                    setUserList(res.data);
+                }
+            } else {
+                setUserList(res.data);
+            }
+        });
+        // 获取分类列表（不是区域列表）
+        adminAxios.get('/categories/main').then((res) => {
+            setCategoryList(res.data);
+        });
+        adminAxios.get('/roles').then((res) => {
             setRoleList(res.data)
         })
     }, [])
     // table表格要渲染的数据
     const columns = [
         {
-            title: '区域',
-            dataIndex: 'region',
-            render: (region) => {
-                if (region === '') {
-                    return <p>全球</p>
+            title: '所属分类',
+            dataIndex: 'category',
+            render: (category) => {
+                if (!category) {
+                    return <p>全部</p>
+                } else if (typeof category === 'object') {
+                    return <p>{category.name}</p>  // 渲染对象的name属性
                 } else {
-                    return <p>{region}</p>
+                    return <p>{category}</p>  // 处理字符串情况
                 }
             },
             filters: [
-                ...regionList.map((region) => {
+                ...categoryList.map((category) => {
                     return {
-                        value: region.value,
-                        text: region.title
+                        value: category.id,
+                        text: category.name
                     }
                 }),
                 {
-                    text: '全球',
-                    value: '全球'
+                    text: '全部',
+                    value: '全部'
                 }
             ],
             onFilter: (value, item) => {
-                if (value === '全球') {
-                    return item.region === ''
+                if (value === '全部') {
+                    return !item.category || item.category === '';
                 }
-                return item.region === value
+                // 检查category是否为对象
+                if (typeof item.category === 'object') {
+                    return item.category.id === value;
+                }
+                return item.category === value;
             }
         },
         {
@@ -147,7 +177,7 @@ export default function UserList() {
                 }
             })
         )
-        axios.patch(`http://localhost:8000/users/${item.id}`, { roleState: !item.roleState })
+        adminAxios.patch(`/users/${item.id}/status`, { roleState: !item.roleState })
     }
     // 删除前的确认框
     function confirmMethod(user) {
@@ -168,7 +198,7 @@ export default function UserList() {
         let list = userList.filter((user) => {
             return user.id !== item.id
         })
-        axios.delete(`http://localhost:8000/users/${item.id}`).then(
+        adminAxios.delete(`/users/${item.id}`).then(
             (res) => {
                 setUserList([...list])
                 message.success('删除成功')
@@ -184,8 +214,8 @@ export default function UserList() {
     function handleAdd() {
         addForm.current.validateFields().then(
             (value) => {
-                axios
-                    .post('http://localhost:8000/users', {
+                adminAxios
+                    .post(`/users`, {
                         ...value,
                         default: false,
                         roleState: true
@@ -193,7 +223,7 @@ export default function UserList() {
                     .then(
                         (res) => {
                             message.success('成功添加用户')
-                            axios.get('http://localhost:8000/users?_expand=role').then((res) => {
+                            adminAxios.get(`/users/with-roles`).then((res) => {
                                 setUserList(res.data)
                             })
                             setIsAddModalOpen(false)
@@ -216,8 +246,10 @@ export default function UserList() {
         }
         setTimeout(() => {
             editForm.current.setFieldsValue({
-                ...user,
-                roleName: user.role.roleName
+                username: user.username,
+                password: user.password || '',
+                roleId: user.role?.id,
+                category_id: user.category?.id  // 使用category对象的id
             })
         }, 10)
         setCurrentId(user.id)
@@ -226,14 +258,14 @@ export default function UserList() {
     function editUser() {
         editForm.current.validateFields().then(
             (value) => {
-                axios
-                    .patch(`http://localhost:8000/users/${currentId}`, {
+                adminAxios
+                    .patch(`/users/${currentId}`, {
                         ...value
                     })
                     .then(
                         (res) => {
                             message.success('成功编辑用户')
-                            axios.get('http://localhost:8000/users?_expand=role').then((res) => {
+                            adminAxios.get(`/users/with-roles`).then((res) => {
                                 setUserList(res.data)
                             })
                             setIsEditModalOpen(false)
@@ -251,7 +283,7 @@ export default function UserList() {
             <Button
                 type="primary"
                 size="large"
-                style={{ marginBottom: '15px' }}
+                style={{ marginBottom: '15px', float: 'right' }}
                 onClick={() => setIsAddModalOpen(!isAddModalOpen)}
             >
                 添加用户
@@ -278,7 +310,7 @@ export default function UserList() {
                 <UserForm
                     isUpdate={isUpdate}
                     roleList={roleList}
-                    regionList={regionList}
+                    categoryList={categoryList}
                     ref={addForm}
                 ></UserForm>
             </Modal>
@@ -297,7 +329,7 @@ export default function UserList() {
                 <UserForm
                     isUpdate={isUpdate}
                     roleList={roleList}
-                    regionList={regionList}
+                    categoryList={categoryList}
                     ref={editForm}
                     isSelectDisabled={isSelectDisabled}
                 ></UserForm>
