@@ -3,12 +3,17 @@
 import { pool } from '../../connect.js';
 
 // 角色权限配置
+// 修改超级管理员的权限，将新闻管理相关的子项改为审核和下架
+
+// 将审核管理和发布管理的权限整合到新闻管理下
+
 const roleRights = [
     {
         id: 1,
         roleName: "超级管理员",
         roleCode: "superadmin",
         rights: [
+            // 用户和权限管理权限
             "/user-manage/add",
             "/user-manage/delete",
             "/user-manage/update",
@@ -20,20 +25,16 @@ const roleRights = [
             "/right-manage/role/delete",
             "/right-manage/right/update",
             "/right-manage/right/delete",
+
+            // 新闻管理模块 - 整合了审核和发布功能
             "/news-manage",
-            "/news-manage/list",
-            "/news-manage/add",
-            "/news-manage/update/:id",
-            "/news-manage/preview/:id",
-            "/news-manage/draft",
-            "/news-manage/category",
-            "/audit-manage",
-            "/audit-manage/audit",
-            "/audit-manage/list",
-            "/publish-manage",
-            "/publish-manage/unpublished",
-            "/publish-manage/published",
-            "/publish-manage/sunset",
+            "/news-manage/audit",     // 新闻审核功能
+            "/news-manage/offline",   // 新闻下架功能
+            "/news-manage/preview/:id", // 新闻预览功能
+            "/news-manage/published",   // 已发布新闻
+            "/news-manage/unpublished", // 待发布新闻
+            "/news-manage/sunset",      // 已下线新闻
+
             "/user-manage",
             "/home"
         ]
@@ -49,20 +50,15 @@ const roleRights = [
             "/user-manage/delete",
             "/user-manage/update",
             "/user-manage/list",
+
+            // 新闻管理模块 - 整合了审核和发布功能
             "/news-manage",
-            "/news-manage/list",
-            "/news-manage/add",
-            "/news-manage/update/:id",
-            "/news-manage/preview/:id",
-            "/news-manage/draft",
-            "/news-manage/category",
-            "/audit-manage",
-            "/audit-manage/audit",
-            "/audit-manage/list",
-            "/publish-manage",
-            "/publish-manage/unpublished",
-            "/publish-manage/published",
-            "/publish-manage/sunset"
+            "/news-manage/audit",     // 新闻审核功能
+            "/news-manage/offline",   // 新闻下架功能
+            "/news-manage/preview/:id", // 新闻预览功能
+            "/news-manage/published",   // 已发布新闻
+            "/news-manage/unpublished", // 待发布新闻
+            "/news-manage/sunset"       // 已下线新闻
         ]
     },
     {
@@ -71,18 +67,15 @@ const roleRights = [
         roleCode: "editor",
         rights: [
             "/home",
+
+            // 新闻管理模块 - 整合了审核和发布功能
             "/news-manage",
-            "/news-manage/list",
-            "/news-manage/add",
-            "/news-manage/update/:id",
-            "/news-manage/preview/:id",
-            "/news-manage/draft",
-            "/audit-manage",
-            "/audit-manage/list",
-            "/publish-manage",
-            "/publish-manage/unpublished",
-            "/publish-manage/published",
-            "/publish-manage/sunset"
+            "/news-manage/audit",     // 新闻审核功能
+            "/news-manage/offline",   // 新闻下架功能
+            "/news-manage/preview/:id", // 新闻预览功能
+            "/news-manage/published",   // 已发布新闻
+            "/news-manage/unpublished", // 待发布新闻
+            "/news-manage/sunset"       // 已下线新闻
         ]
     }
 ];

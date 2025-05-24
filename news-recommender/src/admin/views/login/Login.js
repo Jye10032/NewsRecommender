@@ -18,8 +18,8 @@ export default function Login() {
 
             if (response.data.success) {
                 // 在管理员登录成功后存储 token
-                localStorage.setItem('adminToken', JSON.stringify({
-                    token: response.data.token,
+                localStorage.setItem('adminToken', response.data.token);
+                localStorage.setItem('adminUserInfo', JSON.stringify({
                     id: response.data.id,
                     username: response.data.username,
                     role: response.data.role

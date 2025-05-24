@@ -6,6 +6,8 @@ import { verifyAdminToken, hasPermission } from '../middleware/authMiddleware.js
 import userRoutes from './userRoutes.js';
 import categoryRoutes from './categoryRoutes.js';
 import rightRoutes from './rightRoutes.js';
+//import menuRoutes from './routes/menuRoutes.js';
+import newsRoutes from './newsRoutes.js';
 //import * as userController from '../controllers/userController.js';
 
 const router = express.Router();
@@ -21,6 +23,9 @@ router.use('/', userRoutes);
 router.use('/', rightRoutes);
 
 router.use('/', categoryRoutes);
+
+//  app.use('/admin/menu', menuRoutes);
+router.use('/news', newsRoutes);
 // 用户管理相关路由
 //router.get('/users', verifyAdminToken, hasPermission('user:read'), userController.getUsers);
 //router.post('/users', verifyAdminToken, hasPermission('user:create'), userController.createUser);

@@ -22,6 +22,8 @@ const iconMap = {
 
 // 如果后端API还没准备好，可以使用静态菜单数据
 // 实际使用时可调用真实API
+// 修改 staticMenu 中的新闻管理子菜单项
+
 const staticMenu = [
     {
         key: '/home',
@@ -44,17 +46,27 @@ const staticMenu = [
         title: '新闻管理',
         icon: 'file-text',
         children: [
+            // 审核和下架功能
+            // {
+            //     key: '/news-manage/audit',
+            //     title: '新闻审核',
+            // },
+            // {
+            //     key: '/news-manage/offline',
+            //     title: '新闻下架',
+            // },
+            // 整合发布管理功能
             {
-                key: '/news-manage/add',
-                title: '添加新闻',
+                key: '/news-manage/unpublished',
+                title: '待发布新闻',
             },
             {
-                key: '/news-manage/draft',
-                title: '草稿箱',
+                key: '/news-manage/published',
+                title: '已发布新闻',
             },
             {
-                key: '/news-manage/category',
-                title: '新闻分类',
+                key: '/news-manage/sunset',
+                title: '已下线新闻',
             }
         ]
     },
@@ -73,8 +85,8 @@ const staticMenu = [
             }
         ]
     }
+    // 删除审核管理和发布管理菜单
 ];
-
 // 从props中直接获取collapsed
 export default function SideMenu({ collapsed }) {
     const [menu, setMenu] = useState([]);
@@ -112,9 +124,20 @@ export default function SideMenu({ collapsed }) {
     };
 
     // 递归渲染菜单的函数
+    // 修改 renderMenu 函数，增加对 hidden 属性的处理
+
     const renderMenu = (menuList) => {
         return menuList.map(item => {
+            // 跳过标记为隐藏的菜单项
+            if (item.hidden) return null;
+
             if (item.children && item.children.length > 0) {
+                // 过滤掉子菜单中的隐藏项
+                const visibleChildren = item.children.filter(child => !child.hidden);
+
+                // 如果过滤后没有可见的子菜单，则跳过此菜单项
+                if (visibleChildren.length === 0) return null;
+
                 // 有子菜单的情况，使用SubMenu
                 return (
                     <SubMenu
@@ -122,7 +145,7 @@ export default function SideMenu({ collapsed }) {
                         icon={iconMap[item.key] || <FileTextOutlined />}
                         title={item.title}
                     >
-                        {renderMenu(item.children)}
+                        {renderMenu(visibleChildren)}
                     </SubMenu>
                 );
             }
@@ -135,7 +158,7 @@ export default function SideMenu({ collapsed }) {
                     {item.title}
                 </Menu.Item>
             );
-        });
+        }).filter(Boolean); // 过滤掉null值
     };
 
     return (

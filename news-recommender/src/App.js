@@ -10,6 +10,7 @@ import { AuthProvider } from './contexts/AuthContext.tsx';
 import NewsDetail from './components/NewsDetail.tsx';
 import Settings from './views/user/settings.tsx';
 import './utils/axiosConfig';  // 导入拦截器配置
+import { App as AntApp } from 'antd';
 
 // 导入管理员组件
 import AdminLogin from './admin/views/login/Login';
@@ -19,8 +20,9 @@ import NewsSandBox from './admin/views/sandbox/NewsSandBox';
 
 function App() {
   return (
-    <div className="App">
-      {/* <header className="App-header">
+    <AntApp>
+      <div className="App">
+        {/* <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
           Edit <code>src/App.js</code> and save to reload.
@@ -34,38 +36,39 @@ function App() {
           Learn React
         </a>
       </header> */}
-      {/* BrowserRouter 外部的组件无法访问认证状态
+        {/* BrowserRouter 外部的组件无法访问认证状态
       认证功能通常需要与路由紧密集成（如登录后重定向、保护路由等）
       这种方式允许 AuthProvider 内部使用 useNavigate 或 useLocation 等路由 hooks
       如果放在BroserRouter外面,AuthProvider 不能使用路由相关功能（如 useNavigate、useLocation 等） Context 只能被子组件访问，父组件无法访问子组件创建的 Context*/}
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* 管理员路由 */}
-            <Route path="/admin">
-              <Route path="login" element={<AdminLogin />} />
-              {/* <Route path="news" element={<AdminNews />} />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* 管理员路由 */}
+              <Route path="/admin">
+                <Route path="login" element={<AdminLogin />} />
+                {/* <Route path="news" element={<AdminNews />} />
               <Route path="detail/:id" element={<AdminDetail />} /> */}
-              {/* <Route path="*" element={
+                {/* <Route path="*" element={
                 localStorage.getItem("token") ? <NewsSandBox /> : <Navigate to="/admin/login" />
               } /> */}
-              <Route path="*" element={<NewsSandBox />} />
-            </Route>
-            {/* 前台路由 */}
-            {/* <Route path="/trending" element={<TrendingNewsPage />} /> */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/category/:category" element={<HomePage />} />
-            <Route path="/category/:category/:subcategory" element={<HomePage />} />
-            <Route path="/news/:newsId" element={<NewsDetail />} />
-            <Route path="/settings" element={<Settings />} />
-            {/* 主页路由 */}
-            <Route path="/*" element={<HomePage />} />
-            {/* <Route path="*" element={<NotFound />} /> */}
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </div>
+                <Route path="*" element={<NewsSandBox />} />
+              </Route>
+              {/* 前台路由 */}
+              {/* <Route path="/trending" element={<TrendingNewsPage />} /> */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/category/:category" element={<HomePage />} />
+              <Route path="/category/:category/:subcategory" element={<HomePage />} />
+              <Route path="/news/:newsId" element={<NewsDetail />} />
+              <Route path="/settings" element={<Settings />} />
+              {/* 主页路由 */}
+              <Route path="/*" element={<HomePage />} />
+              {/* <Route path="*" element={<NotFound />} /> */}
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </div>
+    </AntApp>
   );
 }
 

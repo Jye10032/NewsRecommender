@@ -13,8 +13,34 @@ import Nopermission from '../../views/sandbox/nopermission/Nopermission'
 // import Published from '../../views/sandbox/publish-mange/Published'
 // import Unpublished from '../../views/sandbox/publish-mange/Unpublished'
 // import Sunset from '../../views/sandbox/publish-mange/Sunset'
+
+// 添加这些导入
+import NewsManage from '../../views/sandbox/news-manage/NewsManage';
+import AuditManage from '../../views/sandbox/audit-manage/AuditManage';
+import PublishManage from '../../views/sandbox/publish-manage/PublishManage';
+// 导入新组件
+import NewsAudit from '../../views/sandbox/news-manage/NewsAudit';
+import NewsOffline from '../../views/sandbox/news-manage/NewsOffline';
+
+// 新闻管理
+import NewsList from '../../views/sandbox/news-manage/NewsList'
+import NewsEdit from '../../views/sandbox/news-manage/NewsEdit'
+import NewsDraft from '../../views/sandbox/news-manage/NewsDraft'
+import NewsCategory from '../../views/sandbox/news-manage/NewsCategory'
+
+// 审核管理
+import AuditNews from '../../views/sandbox/audit-manage/AuditNews'
+import AuditList from '../../views/sandbox/audit-manage/AuditList'
+import NewsPreview from '../../views/sandbox/news-manage/NewsPreview';
+
+// 发布管理
+import Published from '../../views/sandbox/publish-manage/Published'
+import Unpublished from '../../views/sandbox/publish-manage/Unpublished'
+import Sunset from '../../views/sandbox/publish-manage/Sunset'
+
+
 import React, { useEffect, useState } from 'react'
-import { Route, Routes, Navigate } from 'react-router-dom'
+import { Route, Routes, Navigate, Outlet } from 'react-router-dom'
 import { Spin } from 'antd'
 import axios from 'axios'
 import { Layout } from 'antd';
@@ -83,14 +109,23 @@ export default function NewsSandBox() {
                 ) : (
 
                     <Routes>
-
                         <Route path="home" element={<Home />} />
                         <Route path="user-manage/list" element={<UserList />} />
                         <Route path="right-manage/role/list" element={<RoleList />} />
                         <Route path="right-manage/right/list" element={<RightList />} />
-                        {/* <Route path="news-manage/add" element={<NewsAdd />} />
-                                <Route path="news-manage/draft" element={<NewsDraft />} />
-                                <Route path="news-manage/category" element={<NewsCategory />} /> */}
+
+                        {/* 新闻管理路由 - 整合了审核和发布功能 */}
+                        <Route path="news-manage" element={<NewsManage />}>
+                            <Route path="audit" element={<NewsAudit />} />
+                            <Route path="offline" element={<NewsOffline />} />
+                            <Route path="preview/:id" element={<NewsPreview />} />
+
+                            {/* 移动发布管理功能到新闻管理下 */}
+                            <Route path="published" element={<Published />} />
+                            <Route path="unpublished" element={<Unpublished />} />
+                            <Route path="sunset" element={<Sunset />} />
+                        </Route>
+
                         <Route path="" element={<Navigate to="home" />} />
                         <Route path="*" element={<Nopermission />} />
                     </Routes>

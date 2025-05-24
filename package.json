@@ -13,6 +13,8 @@
         "concurrently": "^8.2.2"
     },
     "dependencies": {
+        "@ant-design/pro-components": "^2.8.7",
+        "moment": "^2.30.1",
         "store": "^2.0.12"
     }
 }
