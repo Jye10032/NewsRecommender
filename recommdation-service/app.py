@@ -156,25 +156,53 @@ def load_model():
                 return False
 
 
-# def preprocess_news(news_pool):
-#     """预处理新闻数据，准备输入模型的格式"""
-#     # 这里需要根据MIND数据集的具体预处理步骤实现
-#     # 通常包括标题分词、转换为ID序列等
-#     processed_news = []
+def calculate_auc(y_true, y_scores):
+    """计算AUC (Area Under the ROC Curve)"""
+    from sklearn.metrics import roc_auc_score
+    try:
+        # 确保有正负样本
+        if len(set(y_true)) <= 1:
+            return 0.5  # 如果所有标签都相同，返回随机预测水平
+        return roc_auc_score(y_true, y_scores)
+    except Exception as e:
+        logger.error(f"AUC计算错误: {str(e)}")
+        return 0.5  # 出错时返回随机水平
 
-#     for news in news_pool:
-#         # 示例处理，实际需要根据模型要求调整
-#         title_words = news.get('title', '').lower().split()
-#         title_ids = [word_dict.get(w, 0) for w in title_words]
-#         # 截断或填充到固定长度
-#         title_ids = title_ids[:30] + [0] * max(0, 30 - len(title_ids))
 
-#         processed_news.append({
-#             'news_id': news['news_id'],
-#             'title': title_ids
-#         })
+def calculate_mrr(predictions, clicked_news_ids):
+    """计算MRR (Mean Reciprocal Rank)"""
+    # 找到第一个被点击的新闻的排名
+    for rank, (news_id, _) in enumerate(predictions, 1):
+        if news_id in clicked_news_ids:
+            return 1.0 / rank
+    return 0.0  # 如果没有命中
 
-#     return processed_news
+
+def calculate_ndcg(predictions, clicked_news_ids, k=10):
+    """计算nDCG@k (Normalized Discounted Cumulative Gain)"""
+    import numpy as np
+
+    # 截取前k个预测
+    top_k_preds = predictions[:k] if len(predictions) >= k else predictions
+
+    # 创建相关性标签
+    relevance = [1 if pred[0]
+                 in clicked_news_ids else 0 for pred in top_k_preds]
+
+    # 如果没有相关项，返回0
+    if sum(relevance) == 0:
+        return 0.0
+
+    # 理想情况下的排序
+    ideal_relevance = sorted(relevance, reverse=True)
+
+    # 计算DCG和IDCG
+    dcg = sum((rel / np.log2(i + 2)) for i, rel in enumerate(relevance))
+    idcg = sum((rel / np.log2(i + 2)) for i, rel in enumerate(ideal_relevance))
+
+    return dcg / idcg if idcg > 0 else 0.0
+
+
 def process_titles(titles):
     """处理新闻标题，将文本转换为ID序列"""
     title_size = 10
@@ -222,7 +250,7 @@ def recommend():
     try:
         # 获取请求数据
         data = request.json
-        user_id = data.get('userId')
+        user_id = data.get('user_id')
         user_history = data.get('userHistory', [])
         news_pool = data.get('newsPool', [])
 
@@ -344,10 +372,207 @@ def recommend():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def calculate_auc(y_true, y_scores):
+    """计算AUC (Area Under the ROC Curve)"""
+    from sklearn.metrics import roc_auc_score
+    try:
+        # 确保有正负样本
+        if len(set(y_true)) <= 1:
+            return 0.5  # 如果所有标签都相同，返回随机预测水平
+        return roc_auc_score(y_true, y_scores)
+    except Exception as e:
+        logger.error(f"AUC计算错误: {str(e)}")
+        return 0.5  # 出错时返回随机水平
+
+
+def calculate_mrr(predictions, clicked_news_ids):
+    """计算MRR (Mean Reciprocal Rank)"""
+    # 找到第一个被点击的新闻的排名
+    for rank, (news_id, _) in enumerate(predictions, 1):
+        if news_id in clicked_news_ids:
+            return 1.0 / rank
+    return 0.0  # 如果没有命中
+
+
+def calculate_ndcg(predictions, clicked_news_ids, k=10):
+    """计算nDCG@k (Normalized Discounted Cumulative Gain)"""
+    import numpy as np
+
+    # 截取前k个预测
+    top_k_preds = predictions[:k] if len(predictions) >= k else predictions
+
+    # 创建相关性标签
+    relevance = [1 if pred[0]
+                 in clicked_news_ids else 0 for pred in top_k_preds]
+
+    # 如果没有相关项，返回0
+    if sum(relevance) == 0:
+        return 0.0
+
+    # 理想情况下的排序
+    ideal_relevance = sorted(relevance, reverse=True)
+
+    # 计算DCG和IDCG
+    dcg = sum((rel / np.log2(i + 2)) for i, rel in enumerate(relevance))
+    idcg = sum((rel / np.log2(i + 2)) for i, rel in enumerate(ideal_relevance))
+
+    return dcg / idcg if idcg > 0 else 0.0
+
+
 @app.route('/', methods=['GET'])
 def health():
     """健康检查端点"""
     return jsonify({'status': 'ok', 'service': 'news-recommendation'})
+
+
+@app.route('/evaluate', methods=['POST'])
+def evaluate_api():
+    """API评估端点"""
+    try:
+        global model, graph, session, model_loaded
+
+        # 确保模型已加载
+        if not model_loaded or model is None:
+            logger.info("评估前加载模型...")
+            success = load_model()
+            if not success:
+                return jsonify({'success': False, 'error': '模型加载失败'}), 500
+
+        # 再次检查图和会话对象
+        if graph is None or session is None:
+            logger.error("TensorFlow图或会话对象为None，重新初始化...")
+            # 重新创建图和会话
+            import tensorflow as tf
+            graph = tf.Graph()
+            with graph.as_default():
+                config = tf.compat.v1.ConfigProto()
+                config.gpu_options.allow_growth = True
+                session = tf.compat.v1.Session(config=config)
+
+            # 加载模型到新的图和会话
+            success = load_model()
+            if not success:
+                return jsonify({'success': False, 'error': '模型重新加载失败'}), 500
+
+        data = request.json
+        test_impressions = data.get('impressions', [])
+
+        if graph is None or session is None:
+            return jsonify({'success': False, 'error': 'TensorFlow图或会话仍然为None'}), 500
+
+        metrics = {
+            'auc': 0,
+            'mrr': 0,
+            'ndcg@5': 0,
+            'ndcg@10': 0
+        }
+
+        if not test_impressions:
+            return jsonify({
+                'success': False,
+                'error': '没有提供测试数据'
+            })
+
+        auc_scores = []
+        mrr_scores = []
+        ndcg5_scores = []
+        ndcg10_scores = []
+
+        for impression in test_impressions:
+            user_id = impression.get('userId')
+            history = impression.get('history', [])
+            candidates = impression.get('impressions', [])
+            clicked_news_ids = [n['news_id']
+                                for n in impression.get('clicked_news', [])]
+
+            # 使用现有的推荐逻辑
+            user_index = get_user_embedding(user_id)
+
+            # 处理标题
+            titles = [news.get('title', '') for news in candidates]
+            processed_titles = process_titles(titles)
+
+            # 处理历史
+            if not history:
+                his_size = 50
+                title_size = config.get('data', {}).get('title_size', 10)
+                history_titles = np.zeros(
+                    (1, his_size, title_size), dtype=np.int32)
+            else:
+
+                # 处理真实历史记录
+                history_titles_text = [news.get('title', '')
+                                       for news in history[:5]]  # 限制历史记录数量
+                processed_history = process_titles(history_titles_text)
+                # 重塑为[1, 历史数, 标题长度]的形状
+                his_size = config.get('data', {}).get('his_size', 5)
+                title_size = config.get('data', {}).get('title_size', 10)
+
+                # 填充或截断历史记录到固定长度
+                if len(processed_history) > his_size:
+                    processed_history = processed_history[:his_size]
+                else:
+                    padding = np.zeros((his_size - len(processed_history),
+                                        title_size), dtype=np.int32)
+                    processed_history = np.vstack((processed_history, padding))
+
+                history_titles = processed_history.reshape(
+                    1, his_size, title_size)
+                pass
+
+            # 预测分数
+            user_input = np.array([[user_index]])
+
+            with graph.as_default():
+                with session.as_default():
+                    predictions = []
+
+                    for i, news in enumerate(candidates):
+                        single_title = processed_titles[i:i +
+                                                        1].reshape(1, 1, processed_titles.shape[1])
+                        score = float(model.scorer.predict(
+                            [user_input, history_titles, single_title])[0, 0])
+                        predictions.append((news['news_id'], score))
+
+                    # 按分数排序
+                    sorted_predictions = sorted(
+                        predictions, key=lambda x: x[1], reverse=True)
+
+                    # 计算真实标签
+                    y_true = [1 if news['news_id']
+                              in clicked_news_ids else 0 for news in candidates]
+                    y_scores = [score for _, score in predictions]
+
+                    # 计算指标
+                    auc = calculate_auc(y_true, y_scores)
+                    mrr = calculate_mrr(sorted_predictions, clicked_news_ids)
+                    ndcg5 = calculate_ndcg(
+                        sorted_predictions, clicked_news_ids, k=5)
+                    ndcg10 = calculate_ndcg(
+                        sorted_predictions, clicked_news_ids, k=10)
+
+                    auc_scores.append(auc)
+                    mrr_scores.append(mrr)
+                    ndcg5_scores.append(ndcg5)
+                    ndcg10_scores.append(ndcg10)
+
+        # 计算平均指标
+        metrics['auc'] = sum(auc_scores) / len(auc_scores) if auc_scores else 0
+        metrics['mrr'] = sum(mrr_scores) / len(mrr_scores) if mrr_scores else 0
+        metrics['ndcg@5'] = sum(ndcg5_scores) / \
+            len(ndcg5_scores) if ndcg5_scores else 0
+        metrics['ndcg@10'] = sum(ndcg10_scores) / \
+            len(ndcg10_scores) if ndcg10_scores else 0
+
+        return jsonify({
+            'success': True,
+            'metrics': metrics,
+            'samples_evaluated': len(test_impressions)
+        })
+
+    except Exception as e:
+        logger.error(f"评估失败: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 if __name__ == '__main__':

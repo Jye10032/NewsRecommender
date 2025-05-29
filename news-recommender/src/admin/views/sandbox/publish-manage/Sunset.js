@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, message } from 'antd';
+import { Table, Button, Modal, message, App } from 'antd';
 import { ExclamationCircleFilled } from '@ant-design/icons';
 import adminAxios from '../../../utils/Request';
 
@@ -8,6 +8,7 @@ const { confirm } = Modal;
 export default function Sunset() {
   const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { modal, message } = App.useApp();
 
   useEffect(() => {
     fetchSunsetNews();
@@ -34,40 +35,61 @@ export default function Sunset() {
     }
   };
 
-  // 重新发布新闻
-  const handleRePublish = (id) => {
-    confirm({
+  // 重新发布新闻 - 修改API端点
+  const handleReactivate = (id) => {
+    modal.confirm({
       title: '确定要重新发布该新闻吗?',
       icon: <ExclamationCircleFilled />,
       content: '重新发布后，新闻将再次显示在前台页面',
       onOk: async () => {
         try {
-          await adminAxios.patch(`/news/${id}`, { status: 2 }); // 状态2表示已发布
-          message.success('新闻重新发布成功');
-          fetchSunsetNews(); // 刷新列表
+          // 添加详细日志
+          console.log(`尝试重新发布新闻ID: ${id}`);
+
+          // 使用正确的API端点和请求格式
+          const res = await adminAxios.patch(`/news/${id}/status`, {
+            status: 2  // 状态2表示已发布
+          });
+
+          // 添加更详细的响应处理
+          if (res.data && res.data.success) {
+            message.success('新闻重新发布成功');
+            fetchSunsetNews(); // 刷新列表
+          } else {
+            message.error(res.data?.message || '重新发布失败');
+          }
         } catch (error) {
+          // 更详细的错误记录
           console.error('重新发布新闻失败:', error);
-          message.error('重新发布新闻失败');
+          console.error('错误详情:', error.response?.data || error.message);
+          message.error(`重新发布新闻失败: ${error.response?.data?.message || error.message}`);
         }
       }
     });
   };
 
+
+
   // 删除新闻
   const handleDelete = (id) => {
-    confirm({
+    modal.confirm({
       title: '确定要删除该新闻吗?',
       icon: <ExclamationCircleFilled />,
       content: '删除后不可恢复',
       okType: 'danger',
       onOk: async () => {
         try {
-          await adminAxios.delete(`/news/${id}`);
-          message.success('新闻删除成功');
-          fetchSunsetNews(); // 刷新列表
+          const res = await adminAxios.delete(`/news/${id}`);
+          if (res.data && res.data.success) {
+            message.success('新闻删除成功');
+            fetchSunsetNews();
+          } else {
+            message.error(res.data?.message || '删除失败');
+          }
         } catch (error) {
           console.error('删除新闻失败:', error);
-          message.error('删除新闻失败');
+          console.error('错误详情:', error.response?.data || error.message);
+          message.error(`删除新闻失败: ${error.response?.data?.message || error.message}`);
         }
       }
     });
@@ -77,19 +99,19 @@ export default function Sunset() {
     {
       title: '新闻标题',
       dataIndex: 'title',
-      render: (text, record) => <a href={`/news/${record.news_id}`} target="_blank" rel="noreferrer">{text}</a>
+      render: (text, record) => (
+        <a href={`/admin/news-manage/preview/${record.news_id}`} target="_blank" rel="noreferrer">
+          {text}
+        </a>
+      )
     },
     {
       title: '作者',
       dataIndex: 'author_name'
     },
     {
-      title: '分类',
-      dataIndex: 'category_name'
-    },
-    {
       title: '下线时间',
-      dataIndex: 'updated_at', // 假设下线时间记录在updated_at字段
+      dataIndex: 'updated_at',
       render: (date) => new Date(date).toLocaleString()
     },
     {
@@ -99,12 +121,11 @@ export default function Sunset() {
           <Button
             type="primary"
             style={{ marginRight: '8px' }}
-            onClick={() => handleRePublish(record.news_id)}
+            onClick={() => handleReactivate(record.news_id)}
           >
             重新发布
           </Button>
           <Button
-            type="primary"
             danger
             onClick={() => handleDelete(record.news_id)}
           >
@@ -114,6 +135,7 @@ export default function Sunset() {
       )
     }
   ];
+
 
   return (
     <div>

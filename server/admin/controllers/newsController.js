@@ -99,29 +99,65 @@ export const getNewsById = async (req, res) => {
         const { id } = req.params;
 
         const result = await pool.query(`
-            SELECT n.*, c.category_name, u.username as author_name
-            FROM news n
-            LEFT JOIN categories c ON n.category_id = c.id
-            LEFT JOIN admin_users u ON n.author_id = u.id
-            WHERE n.news_id = $1
+            SELECT 
+                news_id, 
+                category, 
+                subcategory, 
+                title, 
+                abstract, 
+                content,
+                url, 
+                author_name,
+                cover_image_url,
+                published_at,
+                status
+            FROM news 
+            WHERE news_id = $1 AND (status = 2 OR status = 1)
         `, [id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: '新闻不存在'
+                message: '新闻不存在或未发布'
             });
         }
 
-        res.json({
+        const news = result.rows[0];
+
+        // 如果content为空，尝试使用abstract作为备选
+        if (!news.content && news.abstract) {
+            // 通过API调用生成更详细的内容（可选）
+            try {
+                // 这里可以调用OpenAI等AI服务来扩展摘要为完整内容
+                // 例如：news.content = await generateContentFromAbstract(news.abstract);
+
+                // 临时方案：使用摘要扩展为简单内容
+                news.content = `${news.abstract}\n\n这是基于摘要自动生成的内容，完整内容请点击原文链接查看。`;
+
+                // 可选：更新数据库中的content
+                await pool.query(`
+                    UPDATE news SET content = $1 WHERE news_id = $2
+                `, [news.content, id]);
+            } catch (error) {
+                console.error('生成内容失败:', error);
+                // 失败时不阻止返回，只是没有content
+            }
+        }
+
+        // 增加浏览量（可选）
+        await pool.query(`
+            UPDATE news SET view_count = COALESCE(view_count, 0) + 1 WHERE news_id = $1
+        `, [id]);
+
+        return res.json({
             success: true,
-            data: result.rows[0]
+            data: news
         });
     } catch (error) {
         console.error('获取新闻详情失败:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: '获取新闻详情失败: ' + error.message
+            message: '获取新闻详情失败'
         });
     }
 };
@@ -386,7 +422,8 @@ export const updateNewsStatus = async (req, res) => {
             0: '新闻已保存为草稿',
             1: '新闻已提交审核',
             2: '新闻已发布',
-            3: '新闻已下线'
+            3: '新闻已下线',
+            4: '新闻已删除'
         };
 
         res.json({

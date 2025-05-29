@@ -17,16 +17,16 @@ import Nopermission from '../../views/sandbox/nopermission/Nopermission'
 // 添加这些导入
 import NewsManage from '../../views/sandbox/news-manage/NewsManage';
 import AuditManage from '../../views/sandbox/audit-manage/AuditManage';
-import PublishManage from '../../views/sandbox/publish-manage/PublishManage';
+//import PublishManage from '../../views/sandbox/publish-manage/PublishManage';
 // 导入新组件
 import NewsAudit from '../../views/sandbox/news-manage/NewsAudit';
 import NewsOffline from '../../views/sandbox/news-manage/NewsOffline';
 
-// 新闻管理
-import NewsList from '../../views/sandbox/news-manage/NewsList'
-import NewsEdit from '../../views/sandbox/news-manage/NewsEdit'
-import NewsDraft from '../../views/sandbox/news-manage/NewsDraft'
-import NewsCategory from '../../views/sandbox/news-manage/NewsCategory'
+// // 新闻管理
+// import NewsList from '../../views/sandbox/news-manage/NewsList'
+// import NewsEdit from '../../views/sandbox/news-manage/NewsEdit'
+// import NewsDraft from '../../views/sandbox/news-manage/NewsDraft'
+// import NewsCategory from '../../views/sandbox/news-manage/NewsCategory'
 
 // 审核管理
 import AuditNews from '../../views/sandbox/audit-manage/AuditNews'

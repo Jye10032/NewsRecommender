@@ -17,14 +17,24 @@ CREATE TABLE IF NOT EXISTS news(
     subcategory VARCHAR(50), --新闻子类别
     title TEXT NOT NULL, --新闻标题
     abstract TEXT, --新闻摘要
+    content TEXT, --新闻内容（新增字段）
+    author TEXT, --作者名称（新增字段）
     url TEXT, --新闻 URL
     
     title_entities JSONB, --新闻标题中的实体信息（存储为 JSON 格式）
-    abstract_entities JSONB-- 新闻摘要中的实体信息（存储为 JSON 格式）
-    --content_path TEXT,  -- 新闻正文文件路径
-    --published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 发布时间
+    abstract_entities JSONB, --新闻摘要中的实体信息（存储为 JSON 格式）
+    published_at TIMESTAMP, --发布时间
+    status INTEGER DEFAULT 2, --状态(0:草稿,1:待审核,2:已发布,3:已下线,4:已删除)
+    
+    created_by VARCHAR(50), --创建者ID
+    audit_by VARCHAR(50), --审核者ID
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, --创建时间
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, --更新时间
+    deleted_at TIMESTAMP, --删除时间（用于软删除）
+    
+    cover_image_url TEXT --封面图片URL
 );
-
 -- --导入新闻数据
 
 -- NewsRecommender=# \copy news(news_id, category, subcategory, title, abstract, url, title_entities, abstract_entities)FROM 'C:/Users/Ming Gy/Desktop/graduate/NewsRecommender/data/processed/MINDdemo_train/news.tsv'WITH (FORMAT csv, DELIMITER E'\t',QUOTE E'\x01',ESCAPE E'\\', HEADER false); 
@@ -70,6 +80,11 @@ CREATE TABLE IF NOT EXISTS news_views (
     view_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ip_address VARCHAR(45) -- 可选，记录IP地址
 );
+
+-- 创建索引以提高查询效率
+CREATE INDEX IF NOT EXISTS idx_news_category ON news(category);
+CREATE INDEX IF NOT EXISTS idx_news_status ON news(status);
+CREATE INDEX IF NOT EXISTS idx_news_created_at ON news(created_at);
 
 -- 为提高查询效率创建索引
 CREATE INDEX IF NOT EXISTS idx_news_views_news_id ON news_views(news_id);

@@ -2,7 +2,8 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { Breadcrumb, Layout, Menu, theme } from 'antd';
+import { Breadcrumb, Layout, Menu, theme, Radio, Space } from 'antd';
+import { CalendarOutlined, FireOutlined } from '@ant-design/icons'; // 添加缺少的图标导入
 import NewsList from './NewsList.tsx';
 import { AutoComplete, Input } from 'antd';
 import type { AutoCompleteProps } from 'antd';
@@ -10,6 +11,9 @@ import { Link, useLocation } from 'react-router-dom';
 import TrendingNewsPage from './Trending.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import UserAuth from './UserAuth.tsx';
+import './BreadcrumbStyles.css';
+import { HomeOutlined } from '@ant-design/icons';
+
 
 import CategoryNews from './CategoryNews.tsx'; // 导入分类新闻组件
 // import { useNavigate } from 'react-router-dom';
@@ -34,18 +38,39 @@ interface CategoryResponse {
     };
 }
 
+// 定义要放在前面的特定分类
+const priorityCategories = [
+    'politics',
+    'society',
+    'diplomacy',
+    'military',
+    'science',
+    'odd',
+    'graphic',
+    "Stories-of-China's-high-quality-development"
+];
 
 // 在items数组中添加热门新闻链接
 const items = [
     {
         key: '/',
-        label: <Link to="/">Home</Link>,
+        label: <Link to="/ " className=" category-menu-item">Home</Link>,
     },
+    // 添加优先显示的分类
+    ...priorityCategories.map(category => ({
+        key: `/category/${category}`,
+        label: <Link to={`/category/${category}`} className="category-menu-item">{
+            category === ""
+                ? ""
+                : category.charAt(0).toUpperCase() + category.slice(1)
+        }</Link>
+    })),
     {
         key: '/trending',
-        label: <Link to="/trending">热门资讯</Link>,
+        label: <Link to="/trending" className="category-menu-item">Top News</Link>,
     }
 ];
+
 
 const searchResult = (query: string) =>
     Array.from({ length: getRandomInt(5) })
@@ -86,6 +111,8 @@ const HomePage: React.FC = () => {
     const [menuItems, setMenuItems] = useState(items);
     const { user } = useAuth();
 
+    const sortOrder = 'latest';
+
     const {
         token: { colorBgContainer, borderRadiusLG },
     } = theme.useToken();
@@ -99,28 +126,30 @@ const HomePage: React.FC = () => {
                 if (response.data.success) {
                     const categories = response.data.data;
 
-                    // 转换分类数据为菜单项格式
-                    const categoryItems = Object.entries(categories).map(([category, subcategories]) => {
-                        // 如果有子分类，创建子菜单
-                        if (subcategories.length > 0) {
+                    // 转换分类数据为菜单项格式，但排除已经在前面显示的分类
+                    const categoryItems = Object.entries(categories)
+                        .filter(([category]) => !priorityCategories.includes(category)) // 排除优先分类
+                        .map(([category, subcategories]) => {
+                            // 如果有子分类，创建子菜单
+                            if (subcategories.length > 0) {
+                                return {
+                                    key: `/category/${category}`,
+                                    label: <Link to={`/category/${category}`} className="category-menu-item">{category}</Link>,
+                                    children: subcategories.map((subcategory) => ({
+                                        key: `/category/${category}/${subcategory}`,
+                                        label: <Link to={`/category/${category}/${subcategory}`} className="category-menu-item">{subcategory}</Link>
+                                    }))
+                                };
+                            }
+
+                            // 没有子分类，直接创建菜单项
                             return {
                                 key: `/category/${category}`,
-                                label: <Link to={`/category/${category}`}>{category}</Link>, // 修改为JSX元素
-                                children: subcategories.map((subcategory) => ({
-                                    key: `/category/${category}/${subcategory}`,
-                                    label: <Link to={`/category/${category}/${subcategory}`}>{subcategory}</Link>
-                                }))
+                                label: <Link to={`/category/${category}`}>{category}</Link>
                             };
-                        }
+                        });
 
-                        // 没有子分类，直接创建菜单项
-                        return {
-                            key: `/category/${category}`,
-                            label: <Link to={`/category/${category}`}>{category}</Link>
-                        };
-                    });
-
-                    // 合并静态菜单项和分类菜单项
+                    // 合并静态菜单项和过滤后的分类菜单项
                     setMenuItems([...items, ...categoryItems]);
                 }
             } catch (error) {
@@ -210,20 +239,20 @@ const HomePage: React.FC = () => {
     //     return <NewsList />;
     // };
 
-    // 根据当前路径渲染不同内容的函数
+    // 修改renderContent函数，传递排序参数
     const renderContent = () => {
         if (location.pathname === '/trending') {
             return <TrendingNewsPage />;
         } else if (location.pathname.startsWith('/category/')) {
-            // 从路径中提取分类和子分类信息
             const pathParts = location.pathname.split('/');
-            const category = pathParts[2]; // 第三部分是主分类
-            const subcategory = pathParts.length > 3 ? pathParts[3] : undefined; // 可能有子分类
+            const category = pathParts[2];
+            const subcategory = pathParts.length > 3 ? pathParts[3] : undefined;
 
-            return <CategoryNews category={category} subcategory={subcategory} />;
+            return <CategoryNews category={category} subcategory={subcategory} sortOrder={sortOrder} />;
         }
-        return <NewsList />; // 默认显示所有新闻
+        return <NewsList sortOrder={sortOrder} />;
     };
+
 
     return (
         <Layout>
@@ -273,18 +302,25 @@ const HomePage: React.FC = () => {
                 <UserAuth />
             </Header>
             <Content style={{ padding: '0 48px' }}>
-                <Breadcrumb style={{ margin: '16px 0' }}>
+                <Breadcrumb className="news-breadcrumb">
                     <Breadcrumb.Item>
-                        <Link to="/">首页</Link>
+                        <Link to="/"><HomeOutlined /> Home</Link>
                     </Breadcrumb.Item>
+
                     {location.pathname === '/trending' ? (
-                        <Breadcrumb.Item>热门资讯</Breadcrumb.Item>
+                        <Breadcrumb.Item>Top News</Breadcrumb.Item>
                     ) : location.pathname.startsWith('/category/') ? (
                         <>
-                            <Breadcrumb.Item>分类</Breadcrumb.Item>
                             <Breadcrumb.Item>
-                                {location.pathname.split('/')[2]}
+                                <Link to="/categories">Category</Link>
                             </Breadcrumb.Item>
+
+                            <Breadcrumb.Item>
+                                <Link to={`/category/${location.pathname.split('/')[2]}`}>
+                                    {location.pathname.split('/')[2]}
+                                </Link>
+                            </Breadcrumb.Item>
+
                             {location.pathname.split('/').length > 3 && (
                                 <Breadcrumb.Item>
                                     {location.pathname.split('/')[3]}
@@ -292,9 +328,11 @@ const HomePage: React.FC = () => {
                             )}
                         </>
                     ) : (
-                        <Breadcrumb.Item>所有新闻</Breadcrumb.Item>
+                        <Breadcrumb.Item>News</Breadcrumb.Item>
                     )}
                 </Breadcrumb>
+
+
                 {location.pathname.startsWith('/category/') && (
                     <div style={{ margin: '0 0 16px 0' }}>
                         <h1 style={{
@@ -312,12 +350,13 @@ const HomePage: React.FC = () => {
                             color: '#8c8c8c',
                             margin: '8px 0 0 0'
                         }}>
-                            最新{location.pathname.split('/').length > 3 ?
+                            {/* 最新{location.pathname.split('/').length > 3 ?
                                 location.pathname.split('/')[3] :
-                                location.pathname.split('/')[2]}相关新闻
+                                location.pathname.split('/')[2]}相关新闻 */}
                         </p>
                     </div>
                 )}
+
                 <div
                     style={{
                         padding: 24,

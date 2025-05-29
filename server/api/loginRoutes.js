@@ -1,23 +1,22 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-
-
-import { pool } from '../connect.js'; // 引入数据库连接池
+import { pool } from '../connect.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_fallback_secret_key';
 
-
 // 登录接口
 router.post('/api/login', async (req, res) => {
-
-
     const { username, password } = req.body;
 
     // 检查用户名和密码是否为空
     if (!username || !password) {
-        return res.status(400).json({ success: false, message: '用户名和密码不能为空！' });
+        return res.status(400).json({
+            success: false,
+            message: 'Username and password are required',
+            errorCode: 'MISSING_FIELDS'
+        });
     }
 
     try {
@@ -26,7 +25,11 @@ router.post('/api/login', async (req, res) => {
         const userResult = await pool.query(userQuery, [username]);
 
         if (userResult.rows.length === 0) {
-            return res.status(400).json({ success: false, message: '用户名不存在！' });
+            return res.status(400).json({
+                success: false,
+                message: 'Username does not exist',
+                errorCode: 'USER_NOT_FOUND'
+            });
         }
 
         const user = userResult.rows[0];
@@ -34,9 +37,21 @@ router.post('/api/login', async (req, res) => {
         // 验证密码
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(400).json({ success: false, message: '密码错误！' });
+            return res.status(400).json({
+                success: false,
+                message: 'Incorrect password',
+                errorCode: 'INVALID_PASSWORD'
+            });
         }
 
+        // 检查账户状态（可选，如果您有账户状态字段）
+        if (user.status === 'locked') {
+            return res.status(403).json({
+                success: false,
+                message: 'Your account has been locked. Please contact support.',
+                errorCode: 'ACCOUNT_LOCKED'
+            });
+        }
 
         // 登录成功后生成令牌
         const token = jwt.sign(
@@ -48,19 +63,21 @@ router.post('/api/login', async (req, res) => {
         // 返回令牌和用户信息
         res.status(200).json({
             success: true,
-            message: '登录成功！',
+            message: 'Login successful',
             token,
             user: {
                 userId: user.user_id,
                 username: user.username
             }
         });
-
-        // 登录成功
-        //res.status(200).json({ success: true, message: '登录成功！' });
     } catch (error) {
-        console.error('登录失败：', error);
-        res.status(500).json({ success: false, message: '登录失败，请稍后再试！' });
+        console.error('Login failed:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error, please try again later',
+            errorCode: 'SERVER_ERROR',
+            detail: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
@@ -70,7 +87,20 @@ router.post('/api/register', async (req, res) => {
 
     // 检查用户名和密码是否为空
     if (!username || !password) {
-        return res.status(400).json({ success: false, message: '用户名和密码不能为空！' });
+        return res.status(400).json({
+            success: false,
+            message: 'Username and password are required',
+            errorCode: 'MISSING_FIELDS'
+        });
+    }
+
+    // 验证密码强度
+    if (password.length < 6) {
+        return res.status(400).json({
+            success: false,
+            message: 'Password must be at least 6 characters long',
+            errorCode: 'WEAK_PASSWORD'
+        });
     }
 
     try {
@@ -79,11 +109,15 @@ router.post('/api/register', async (req, res) => {
         const userCheckResult = await pool.query(userCheckQuery, [username]);
 
         if (userCheckResult.rows.length > 0) {
-            return res.status(400).json({ success: false, message: '用户名已存在！' });
+            return res.status(400).json({
+                success: false,
+                message: 'Username already exists',
+                errorCode: 'USERNAME_TAKEN'
+            });
         }
 
         // 使用 bcrypt 加密密码
-        const hashedPassword = await bcrypt.hash(password, 10); // 10 是加密强度
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // 插入用户信息到数据库
         const insertUserQuery = `
@@ -92,10 +126,18 @@ router.post('/api/register', async (req, res) => {
         `;
         await pool.query(insertUserQuery, [username, username, hashedPassword]);
 
-        res.status(201).json({ success: true, message: '注册成功！' });
+        res.status(201).json({
+            success: true,
+            message: 'Registration successful'
+        });
     } catch (error) {
-        console.error('注册失败：', error);
-        res.status(500).json({ success: false, message: '注册失败，请稍后再试！' });
+        console.error('Registration failed:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error, please try again later',
+            errorCode: 'SERVER_ERROR',
+            detail: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 

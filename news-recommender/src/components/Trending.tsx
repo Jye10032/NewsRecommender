@@ -57,7 +57,7 @@ const TrendingNewsPage: React.FC = () => {
 
     return (
         <>
-            <Title level={2}>热门资讯 - 点击率最高的新闻</Title>
+            <Title level={2}>Top Trending</Title>
 
             <Spin spinning={loading}>
                 <List
@@ -95,7 +95,7 @@ const TrendingNewsPage: React.FC = () => {
                                         {item.title}
                                     </a>
                                 }
-                                description={item.author ? `作者: ${item.author}` : '未知作者'}
+                                description={item.author ? `author: ${item.author}` : '未知作者'}
                             />
                             {item.abstract}
                         </List.Item>

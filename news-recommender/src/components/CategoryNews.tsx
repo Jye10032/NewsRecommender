@@ -10,6 +10,7 @@ const { Title } = Typography;
 interface CategoryNewsProps {
     category: string;
     subcategory?: string;
+    sortOrder?: string; // 添加sortOrder属性
 }
 const IconText = ({ icon, text }: { icon: React.FC; text: string }) => (
     <Space>
@@ -18,7 +19,7 @@ const IconText = ({ icon, text }: { icon: React.FC; text: string }) => (
     </Space>
 );
 
-const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory }) => {
+const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory, sortOrder = 'latest' }) => {
     const [news, setNews] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -27,9 +28,12 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory }) =>
         const fetchNews = async () => {
             setLoading(true);
             try {
-                const url = subcategory
+                let url = subcategory
                     ? `/api/news/category/${category}/${subcategory}`
                     : `/api/news/category/${category}`;
+
+                // 添加排序参数
+                url += `?sort=${sortOrder}`;
 
                 const response = await axios.get(url);
                 if (response.data.success) {
@@ -48,7 +52,7 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory }) =>
         };
 
         fetchNews();
-    }, [category, subcategory]);
+    }, [category, subcategory, sortOrder]);
 
     const handleNewsClick = (newsId: string) => {
         navigate(`/news/${newsId}`);
@@ -126,7 +130,7 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, subcategory }) =>
                                         {item.title}
                                     </a>
                                 }
-                                description={`分类: ${item.category}${item.subcategory ? ` - ${item.subcategory}` : ''}`}
+                            // description={`Category: ${item.category}${item.subcategory ? ` - ${item.subcategory}` : ''}`}
                             />
                             {item.abstract}
                         </List.Item>

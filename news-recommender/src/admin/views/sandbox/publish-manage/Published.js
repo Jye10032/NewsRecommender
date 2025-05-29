@@ -37,20 +37,16 @@ export default function Published() {
 
   // 下线新闻
   const handleOffline = (id) => {
-    console.log('准备下线新闻:', id);
-
     modal.confirm({
       title: '确定要下线该新闻吗?',
       icon: <ExclamationCircleFilled />,
       content: '下线后，该新闻将不再显示在前台',
       onOk: async () => {
         try {
-          // 移除/status子路径，直接使用/news/:id
-          const res = await adminAxios.patch(`/news/${id}`, {
+          // 使用正确的API端点修改状态
+          const res = await adminAxios.patch(`/news/${id}/status`, {
             status: 3 // 状态3表示已下线
           });
-
-          console.log('下线响应:', res.data);
 
           if (res.data.success) {
             message.success('新闻已下线');

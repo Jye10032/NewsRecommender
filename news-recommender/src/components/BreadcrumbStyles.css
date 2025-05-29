@@ -1,0 +1,26 @@
+.news-breadcrumb {
+    margin: 16px 0;
+    font-family: "Arial", "Helvetica", sans-serif;
+    font-size: 14px;
+}
+
+.news-breadcrumb a {
+    color: #1890ff;
+    transition: color 0.3s;
+}
+
+.news-breadcrumb a:hover {
+    color: #40a9ff;
+}
+
+/* 最后一项的样式 */
+.news-breadcrumb .ant-breadcrumb-item:last-child {
+    color: rgba(0, 0, 0, 0.65);
+    font-weight: 500;
+}
+
+/* 添加面包屑分隔符样式 */
+.news-breadcrumb .ant-breadcrumb-separator {
+    margin: 0 8px;
+    color: rgba(0, 0, 0, 0.45);
+}

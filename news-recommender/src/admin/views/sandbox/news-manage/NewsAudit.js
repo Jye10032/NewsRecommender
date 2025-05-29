@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, notification, Modal, message } from 'antd';
-import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, message, Tag } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleFilled } from '@ant-design/icons';
 import adminAxios from '../../../utils/Request';
+
+const { confirm } = Modal;
 
 export default function NewsAudit() {
     const [dataSource, setDataSource] = useState([]);
@@ -16,9 +18,14 @@ export default function NewsAudit() {
         setLoading(true);
         try {
             const res = await adminAxios.get('/news', {
-                params: { status: 1 } // 假设状态1是待审核
+                params: { status: 1 }  // 状态1表示待审核
             });
-            setDataSource(res.data.items || []);
+
+            if (res.data && res.data.items) {
+                setDataSource(res.data.items);
+            } else {
+                setDataSource([]);
+            }
         } catch (error) {
             console.error('获取待审核新闻失败:', error);
             message.error('获取待审核新闻失败');
@@ -28,34 +35,67 @@ export default function NewsAudit() {
     };
 
     // 审核通过
-    const handleApprove = async (id) => {
-        try {
-            await adminAxios.patch(`/news/${id}`, { status: 2 }); // 状态2为已发布
-            message.success('审核通过');
-            fetchPendingNews();
-        } catch (error) {
-            console.error('操作失败:', error);
-            message.error('操作失败');
-        }
+    const handleApprove = (id) => {
+        confirm({
+            title: '确认通过审核?',
+            icon: <CheckCircleOutlined />,
+            content: '通过后，新闻将被发布到前台',
+            onOk: async () => {
+                try {
+                    const res = await adminAxios.patch(`/news/${id}/status`, {
+                        status: 2  // 状态2表示已发布
+                    });
+
+                    if (res.data.success) {
+                        message.success('新闻已通过审核并发布');
+                        fetchPendingNews();  // 刷新列表
+                    } else {
+                        message.error(res.data.message || '操作失败');
+                    }
+                } catch (error) {
+                    console.error('审核操作失败:', error);
+                    message.error('审核操作失败: ' + (error.response?.data?.message || error.message));
+                }
+            }
+        });
     };
 
     // 审核不通过
-    const handleReject = async (id) => {
-        try {
-            await adminAxios.patch(`/news/${id}`, { status: 3 }); // 状态3为已拒绝
-            message.success('已拒绝');
-            fetchPendingNews();
-        } catch (error) {
-            console.error('操作失败:', error);
-            message.error('操作失败');
-        }
+    const handleReject = (id) => {
+        confirm({
+            title: '确认驳回此新闻?',
+            icon: <CloseCircleOutlined />,
+            content: '驳回后，新闻将不会发布',
+            okType: 'danger',
+            onOk: async () => {
+                try {
+                    const res = await adminAxios.patch(`/news/${id}/status`, {
+                        status: 3  // 状态3表示已下线/未通过
+                    });
+
+                    if (res.data.success) {
+                        message.success('新闻已驳回');
+                        fetchPendingNews();  // 刷新列表
+                    } else {
+                        message.error(res.data.message || '操作失败');
+                    }
+                } catch (error) {
+                    console.error('审核操作失败:', error);
+                    message.error('审核操作失败: ' + (error.response?.data?.message || error.message));
+                }
+            }
+        });
     };
 
     const columns = [
         {
             title: '新闻标题',
             dataIndex: 'title',
-            render: (text, record) => <a href={`/news/${record.news_id}`} target="_blank" rel="noreferrer">{text}</a>
+            render: (text, record) => (
+                <a href={`/admin/news-manage/preview/${record.news_id}`} target="_blank" rel="noreferrer">
+                    {text}
+                </a>
+            )
         },
         {
             title: '作者',
@@ -73,23 +113,22 @@ export default function NewsAudit() {
         {
             title: '操作',
             render: (_, record) => (
-                <div>
+                <>
                     <Button
                         type="primary"
-                        icon={<CheckOutlined />}
                         style={{ marginRight: '8px' }}
                         onClick={() => handleApprove(record.news_id)}
                     >
-                        通过
+                        <CheckCircleOutlined /> 通过
                     </Button>
                     <Button
+                        type="primary"
                         danger
-                        icon={<CloseOutlined />}
                         onClick={() => handleReject(record.news_id)}
                     >
-                        拒绝
+                        <CloseCircleOutlined /> 驳回
                     </Button>
-                </div>
+                </>
             )
         }
     ];
@@ -103,6 +142,7 @@ export default function NewsAudit() {
                 rowKey="news_id"
                 loading={loading}
                 pagination={{ pageSize: 10 }}
+                locale={{ emptyText: '暂无待审核的新闻' }}
             />
         </div>
     );

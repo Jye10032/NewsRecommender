@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, message } from 'antd';
+import { Table, Button, Modal, message, App } from 'antd';
 import { ExclamationCircleFilled } from '@ant-design/icons';
 import adminAxios from '../../../utils/Request';
 
@@ -8,6 +8,7 @@ const { confirm } = Modal;
 export default function Unpublished() {
   const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { modal, message } = App.useApp();
 
   useEffect(() => {
     fetchUnpublishedNews();
@@ -36,7 +37,7 @@ export default function Unpublished() {
 
   // 发布新闻
   const handlePublish = (id) => {
-    confirm({
+    modal.confirm({
       title: '确定要发布该新闻吗?',
       icon: <ExclamationCircleFilled />,
       content: '发布后，新闻将显示在前台页面',

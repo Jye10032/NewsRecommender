@@ -130,31 +130,85 @@ router.get('/', async (req, res) => {
         res.status(500).json({ success: false, message: '获取新闻列表失败' });
     }
 });
+// 添加新闻下线路由
+router.patch('/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
 
+        // 验证状态值
+        if (![0, 1, 2, 3].includes(Number(status))) {
+            return res.status(400).json({
+                success: false,
+                message: '无效的状态值'
+            });
+        }
+
+        // 更新新闻状态
+        const result = await pool.query(`
+            UPDATE news
+            SET status = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE news_id = $2
+            RETURNING *
+        `, [status, id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '新闻不存在'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: '新闻状态已更新',
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error('更新新闻状态失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '更新新闻状态失败'
+        });
+    }
+});
+
+// 获取单个新闻详情
+// 获取单个新闻详情 
 // 获取单个新闻详情
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
+        // 修改查询，使用正确的字段名进行JOIN
         const result = await pool.query(`
-      SELECT n.*, c.name as category_name, sc.name as subcategory_name,
-      au.username as author_name, ru.username as reviewer_name
-      FROM news n
-      LEFT JOIN categories c ON n.category = c.code
-      LEFT JOIN categories sc ON n.subcategory = sc.code
-      LEFT JOIN admin_users au ON n.created_by = au.id::text
-      LEFT JOIN admin_users ru ON n.audit_by = ru.id::text
-      WHERE n.news_id = $1
-    `, [id]);
+            SELECT n.*, c.name as category_name, sc.name as subcategory_name,
+            au.username as author_name, ru.username as reviewer_name
+            FROM news n
+            LEFT JOIN categories c ON n.category = c.code
+            LEFT JOIN categories sc ON n.subcategory = sc.code
+            LEFT JOIN admin_users au ON n.created_by = au.id::text
+            LEFT JOIN admin_users ru ON n.audit_by = ru.id::text
+            WHERE n.news_id = $1
+        `, [id]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, message: '新闻不存在' });
+            return res.status(404).json({
+                success: false,
+                message: '新闻不存在'
+            });
         }
 
-        res.json(result.rows[0]);
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
     } catch (error) {
         console.error('获取新闻详情失败:', error);
-        res.status(500).json({ success: false, message: '获取新闻详情失败' });
+        res.status(500).json({
+            success: false,
+            message: '获取新闻详情失败'
+        });
     }
 });
 

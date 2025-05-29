@@ -70,14 +70,14 @@ export default function Register() {
                     className="register-form"
                     onFinish={onFinish}
                 >
-                    <h2 style={{ textAlign: 'center' }}>注册</h2>
+                    <h2 style={{ textAlign: 'center' }}>Sign Up</h2>
                     <Form.Item
                         name="username"
                         rules={[{ required: true, message: '请输入用户名！' }]}
                     >
                         <Input
                             prefix={<UserOutlined className="site-form-item-icon" />}
-                            placeholder="用户名"
+                            placeholder="Username"
                         />
                     </Form.Item>
                     <Form.Item
@@ -86,12 +86,12 @@ export default function Register() {
                     >
                         <Input.Password
                             prefix={<LockOutlined className="site-form-item-icon" />}
-                            placeholder="密码"
+                            placeholder="Password"
                         />
                     </Form.Item>
                     <Form.Item>
                         <Button type="primary" htmlType="submit" className="register-form-button" block>
-                            注册
+                            Done
                         </Button>
                     </Form.Item>
                 </Form>

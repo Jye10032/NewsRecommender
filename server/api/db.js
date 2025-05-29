@@ -10,10 +10,11 @@ db.get('/api/news', async (req, res) => {
         const offset = (page - 1) * limit;
 
         const query = `
-            SELECT news_id, category, subcategory, title, abstract,published_at
-            FROM news 
-            LIMIT $1 OFFSET $2
-        `;
+        SELECT news_id, category, subcategory, title, abstract,author, published_at, cover_image_url
+        FROM news
+        ORDER BY published_at DESC NULLS LAST
+        LIMIT $1 OFFSET $2
+    `;
 
         const result = await pool.query(query, [limit, offset]);
         const countResult = await pool.query('SELECT COUNT(*) FROM news');
@@ -90,10 +91,9 @@ db.get('/api/news/category/:category', async (req, res) => {
         const query = `
             SELECT * FROM news 
             WHERE category = $1 
-            ORDER BY news_id DESC
+            ORDER BY published_at DESC NULLS LAST  
             LIMIT $2 OFFSET $3
         `;
-
         const result = await pool.query(query, [category, limit, offset]);
 
         res.json({
@@ -119,7 +119,7 @@ db.get('/api/news/category/:category/:subcategory', async (req, res) => {
         const query = `
             SELECT * FROM news 
             WHERE category = $1 AND subcategory = $2
-            ORDER BY news_id DESC
+            ORDER BY published_at DESC NULLS LAST
             LIMIT $3 OFFSET $4
         `;
 
@@ -175,8 +175,15 @@ db.get('/api/news/trending', async (req, res) => {
 db.get('/api/news/:newsId', async (req, res) => {
     try {
         const { newsId } = req.params;
-        const query = 'SELECT * FROM news WHERE news_id = $1';
+        const query = `
+            SELECT news_id, category, subcategory, title, abstract, 
+                   content, author, url, published_at, status, 
+                   cover_image_url
+            FROM news 
+            WHERE news_id = $1
+        `;
         const result = await pool.query(query, [newsId]);
+
 
         if (result.rows.length === 0) {
             return res.status(404).json({

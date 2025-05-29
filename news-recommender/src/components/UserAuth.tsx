@@ -14,13 +14,13 @@ const UserAuth: React.FC = () => {
     const userMenuItems: MenuProps['items'] = [
         {
             key: 'profile',
-            label: '个人中心',
+            label: 'profile',
             icon: <UserOutlined />,
             onClick: () => navigate('/profile')
         },
         {
             key: 'settings',
-            label: '设置',
+            label: 'settings',
             icon: <SettingOutlined />,
             onClick: () => navigate('/settings')
         },
@@ -29,7 +29,7 @@ const UserAuth: React.FC = () => {
         },
         {
             key: 'logout',
-            label: '退出登录',
+            label: 'Logout',
             icon: <LogoutOutlined />,
             onClick: () => {
                 logout();
@@ -73,10 +73,10 @@ const UserAuth: React.FC = () => {
                             marginLeft: '15px'
                         }}
                     >
-                        登录
+                        Sign In
                     </Button>
                     <Button onClick={handleRegisterClick}>
-                        注册
+                        Sign Up
                     </Button>
                 </Space>
             )
